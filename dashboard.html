@@ -1,0 +1,1552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOLON Notary Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
+        }
+        .card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            background-color: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.08);
+        }
+        .gauge-container {
+            width: 150px;
+            height: 150px;
+            position: relative;
+            margin: auto;
+        }
+        .gauge-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: conic-gradient(#4d83ff 0%, #00c6ff var(--fill-percentage), #e5e7eb var(--fill-percentage), #e5e7eb 100%);
+        }
+        .gauge-value {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1f2937;
+        }
+        .role-menu {
+            @apply absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-10 hidden;
+        }
+        .role-menu-item {
+            @apply px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 flex items-center justify-between cursor-pointer;
+        }
+        .role-menu-item.active {
+            @apply font-semibold bg-gray-100 text-gray-900;
+        }
+    </style>
+</head>
+<body class="p-6">
+    <div class="max-w-7xl mx-auto min-h-screen flex flex-col">
+        <!-- Dashboard Header -->
+        <header class="flex flex-col sm:flex-row justify-between items-center mb-8">
+            <h1 class="text-4xl font-extrabold text-gray-900 tracking-tight">SOLON Notary</h1>
+            <div class="flex items-center space-x-4 mt-4 sm:mt-0 relative">
+                <span class="text-gray-600 font-semibold text-sm" id="dashboardTitle">Operational Dashboard</span>
+                <div id="profileIcon" class="relative">
+                    <img src="https://placehold.co/40x40/e6f0ff/4d83ff?text=JO" alt="User Avatar" class="rounded-full ring-2 ring-blue-400 ring-offset-2 transition-transform duration-200 cursor-pointer hover:scale-105">
+                    
+                    <div id="roleMenu" class="role-menu">
+                        <div class="role-menu-item active" data-role="operational">Operational</div>
+                        <div class="role-menu-item" data-role="supervisor">Supervisor</div>
+                        <div class="role-menu-item" data-role="finance">Finance</div>
+                        <div class="role-menu-item" data-role="management">Management</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Operational Dashboard Content -->
+        <div id="operationalDashboard" class="block">
+            <!-- Operational KPI Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                <!-- Document Success Rate KPI -->
+                <div class="card p-8 rounded-3xl shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-sm font-medium text-gray-500">Document Success Rate</span>
+                        <svg class="h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.012 12.012 0 002.944 12c0 2.898.672 5.673 1.905 8.164M18 12a6 6 0 11-12 0 6 6 0 0112 0z" />
+                        </svg>
+                    </div>
+                    <div class="mt-4 flex items-center justify-center">
+                        <div class="gauge-container">
+                            <div id="successGauge" class="gauge-fill" style="--fill-percentage: 85%;"></div>
+                            <span id="successRateValue" class="gauge-value">85%</span>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-4 text-center">of documents successfully processed.</p>
+                </div>
+
+                <!-- Current Workload KPI -->
+                <div class="card p-8 rounded-3xl shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-sm font-medium text-gray-500">Current Workload</span>
+                        <svg class="h-6 w-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div class="mt-4">
+                        <p id="finishedDocs" class="text-3xl font-bold text-gray-900">42</p>
+                        <p class="text-xs text-gray-400 mt-1">Finished Documents</p>
+                        <div class="w-full bg-gray-200 rounded-full h-2.5 mt-2">
+                            <div class="bg-blue-400 h-2.5 rounded-full" style="width: 84%"></div>
+                        </div>
+                        <div class="text-xs text-gray-400 mt-4 flex justify-between">
+                            <span><span id="outstandingDocs" class="font-bold text-red-600">3</span> Outstanding</span>
+                            <span><span id="inProgressDocs" class="font-bold">5</span> In Progress</span>
+                            <span><span id="freezedDocs" class="font-bold text-gray-600">1</span> Freezed</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Session Overview Widget -->
+                <div class="card p-8 rounded-3xl shadow-sm flex flex-col items-center justify-center">
+                    <div class="flex items-center space-x-4 mb-2">
+                        <img src="https://placehold.co/50x50/a855f7/ffffff?text=JO" alt="User Avatar" class="rounded-full ring-2 ring-purple-400 ring-offset-2">
+                        <span class="text-lg font-semibold text-gray-800">Hello, ERP User</span>
+                    </div>
+                    <p id="currentTime" class="text-3xl font-bold text-gray-900 my-2"></p>
+                    <p id="sessionTime" class="text-sm text-gray-500"></p>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <!-- Document Funnel Chart -->
+                <div class="card p-8 rounded-3xl shadow-sm">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">Document Funnel</h2>
+                    <canvas id="documentFunnelChart"></canvas>
+                </div>
+                <!-- Performance vs Target Chart -->
+                <div class="card p-8 rounded-3xl shadow-sm">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">Performance vs. Target</h2>
+                    <canvas id="performanceChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Current Assignments Table -->
+            <div class="card p-8 rounded-3xl shadow-sm">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Current Assignments</h2>
+                <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 mb-4">
+                    <input type="text" id="clientFilter" placeholder="Filter by client..." class="rounded-lg p-2 border border-gray-300 w-full sm:w-1/3 text-sm">
+                    <input type="text" id="typeFilter" placeholder="Filter by type..." class="rounded-lg p-2 border border-gray-300 w-full sm:w-1/3 text-sm">
+                    <select id="statusFilter" class="rounded-lg p-2 border border-gray-300 w-full sm:w-1/3 text-sm">
+                        <option value="">All Statuses</option>
+                        <option value="Pending Review">Pending Review</option>
+                        <option value="Drafted">Drafted</option>
+                        <option value="Awaiting Signature">Awaiting Signature</option>
+                        <option value="Outstanding">Outstanding</option>
+                        <option value="Freezed">Freezed</option>
+                    </select>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-100 rounded-t-xl">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-xl">Document ID</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-xl cursor-pointer" id="deadlineHeader">
+                                    Deadline
+                                    <span id="sort-icon" class="ml-1 inline-block">
+                                        <svg class="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path></svg>
+                                    </span>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="assignmentsTableBody" class="bg-white divide-y divide-gray-200">
+                            <!-- Table rows will be inserted here by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Supervisor Dashboard Content -->
+        <div id="supervisorDashboard" class="hidden">
+            <!-- Supervisor KPI Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <!-- Team Target Progress KPI -->
+                <div class="card p-8 rounded-3xl shadow-sm flex flex-col">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-medium text-gray-500">Team Target Progress</span>
+                        <svg class="h-6 w-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 15h2m-2 4h2m-7-2h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                    <p id="teamTargetProgress" class="text-3xl font-bold text-gray-900">75%</p>
+                    <p class="text-xs text-gray-400 mt-1">150 of 200 Docs completed</p>
+                    <div class="w-full bg-gray-200 rounded-full h-2.5 mt-4">
+                        <div class="bg-yellow-400 h-2.5 rounded-full" style="width: 75%"></div>
+                    </div>
+                </div>
+
+                <!-- Team Success Rate KPI -->
+                <div class="card p-8 rounded-3xl shadow-sm flex flex-col items-start">
+                    <div class="flex items-center justify-between w-full mb-4">
+                        <span class="text-sm font-medium text-gray-500">Team Success Rate</span>
+                        <svg class="h-6 w-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                    <p id="teamSuccessRate" class="text-3xl font-bold text-gray-900">92%</p>
+                    <p class="text-xs text-gray-400 mt-1">firm-wide average</p>
+                </div>
+
+                <!-- Team Average Processing Time KPI -->
+                <div class="card p-8 rounded-3xl shadow-sm flex flex-col items-start">
+                    <div class="flex items-center justify-between w-full mb-4">
+                        <span class="text-sm font-medium text-gray-500">Avg. Processing Time</span>
+                        <svg class="w-6 h-6 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <p id="avgProcessingTime" class="text-3xl font-bold text-gray-900">4.1 Days</p>
+                    <div class="flex items-center text-xs text-gray-400 mt-1">
+                        <span id="avgTimeTrend" class="flex items-center text-red-500">
+                            <svg class="w-3 h-3 mr-1 transform rotate-180" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10 13l-5-5h10l-5 5z"></path></svg> 2.3%
+                        </span>
+                        <span class="ml-1">vs. last month</span>
+                    </div>
+                </div>
+
+                <!-- Session Overview Widget -->
+                <div class="card p-8 rounded-3xl shadow-sm flex flex-col items-center justify-center">
+                    <div class="flex items-center space-x-4 mb-2">
+                        <img src="https://placehold.co/50x50/a855f7/ffffff?text=JO" alt="User Avatar" class="rounded-full ring-2 ring-purple-400 ring-offset-2">
+                        <span class="text-lg font-semibold text-gray-800">Hello, ERP User</span>
+                    </div>
+                    <p id="currentTime2" class="text-3xl font-bold text-gray-900 my-2"></p>
+                    <p id="sessionTime2" class="text-sm text-gray-500"></p>
+                </div>
+            </div>
+
+            <!-- Team Performance Charts and Leaderboard -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <!-- Team Performance Chart -->
+                <div class="card p-8 rounded-3xl shadow-sm">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">Documents Processed by Notary</h2>
+                    <canvas id="teamPerformanceChart"></canvas>
+                </div>
+                <!-- Team Success Rate Trend Chart -->
+                <div class="card p-8 rounded-3xl shadow-sm">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">Team Success Rate Trend</h2>
+                    <canvas id="teamSuccessRateTrendChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Documents for Supervisor Action Table -->
+            <div class="card p-8 rounded-3xl shadow-sm">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Documents for My Action</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-100 rounded-t-xl">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-xl">Document ID</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action Required</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-xl">Deadline</th>
+                            </tr>
+                        </thead>
+                        <tbody id="supervisorAssignmentsTableBody" class="bg-white divide-y divide-gray-200">
+                            <!-- Table rows will be inserted here by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Team Leaderboard Table -->
+            <div class="card p-8 rounded-3xl shadow-sm mt-8">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Team Leaderboard</h2>
+                <div class="flex space-x-2 mb-4">
+                    <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-full text-sm font-medium hover:bg-gray-300 transition" data-time-period="daily">Daily</button>
+                    <button class="bg-blue-500 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-blue-600 transition" data-time-period="weekly">Weekly</button>
+                    <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-full text-sm font-medium hover:bg-gray-300 transition" data-time-period="monthly">Monthly</button>
+                    <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-full text-sm font-medium hover:bg-gray-300 transition" data-time-period="annually">Annually</button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-xl">Rank</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notary</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Success Rate</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-xl">Docs Completed</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboardTableBody" class="bg-white divide-y divide-gray-200">
+                            <!-- Leaderboard data will be inserted here by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Other Dashboards (hidden for now) -->
+        <div id="financeDashboard" class="hidden">
+            <!-- Finance KPI Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                <!-- Integrated Cash Flow KPI -->
+                <div class="card p-8 rounded-3xl shadow-sm flex flex-col sm:col-span-2">
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-sm font-medium text-gray-500">Financial Snapshot</span>
+                        <svg class="h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2-3 2 3-.895 3-2-.895-2-3-2zM9 17a3 3 0 013-3h.01a3 3 0 013 3v2H9v-2z" />
+                        </svg>
+                    </div>
+                    <div class="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
+                        <div class="flex-1 text-center">
+                            <p class="text-sm font-medium text-gray-500">Current Cash Balance</p>
+                            <p id="cashBalance" class="text-2xl font-bold text-green-500 mt-1">Rp 150,000,000</p>
+                        </div>
+                        <div class="flex-1 text-center">
+                            <p class="text-sm font-medium text-gray-500">Accounts Receivable</p>
+                            <p id="accountsReceivable" class="text-2xl font-bold text-gray-900 mt-1">Rp 45,000,000</p>
+                        </div>
+                        <div class="flex-1 text-center">
+                            <p class="text-sm font-medium text-gray-500">Accounts Payable</p>
+                            <p id="accountsPayable" class="text-2xl font-bold text-red-500 mt-1">Rp 25,000,000</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Session Overview Widget -->
+                <div class="card p-8 rounded-3xl shadow-sm flex flex-col items-center justify-center">
+                    <div class="flex items-center space-x-4 mb-2">
+                        <img src="https://placehold.co/50x50/a855f7/ffffff?text=JO" alt="User Avatar" class="rounded-full ring-2 ring-purple-400 ring-offset-2">
+                        <span class="text-lg font-semibold text-gray-800">Hello, ERP User</span>
+                    </div>
+                    <p id="currentTime3" class="text-3xl font-bold text-gray-900 my-2"></p>
+                    <p id="sessionTime3" class="text-sm text-gray-500"></p>
+                </div>
+            </div>
+
+            <!-- Finance Charts and Tables -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <!-- Projected Cash Flow Chart -->
+                <div class="card p-8 rounded-3xl shadow-sm">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">Projected Cash Flow</h2>
+                    <canvas id="projectedCashFlowChart"></canvas>
+                </div>
+                <!-- Net Profit Margin Chart -->
+                <div class="card p-8 rounded-3xl shadow-sm">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">Net Profit Margin by Service</h2>
+                    <canvas id="profitMarginChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Financial Actions Table -->
+            <div class="card p-8 rounded-3xl shadow-sm mt-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold text-gray-800">Financial Actions Required</h2>
+                    <select id="priorityFilter" class="rounded-lg p-2 border border-gray-300 text-sm">
+                        <option value="">All Priorities</option>
+                        <option value="High">High</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Low">Low</option>
+                    </select>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-100 rounded-t-xl">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-xl cursor-pointer" id="priorityHeader">
+                                    Priority
+                                    <span id="priority-sort-icon" class="ml-1 inline-block">
+                                        <svg class="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path></svg>
+                                    </span>
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Document ID</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action Required</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-xl cursor-pointer" id="financeActionDateHeader">
+                                    Due Date
+                                    <span id="finance-date-sort-icon" class="ml-1 inline-block">
+                                        <svg class="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path></svg>
+                                    </span>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="financeActionsTableBody" class="bg-white divide-y divide-gray-200">
+                            <!-- Data will be inserted by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tax Breakdown Table -->
+            <div class="card p-8 rounded-3xl shadow-sm mt-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold text-gray-800">Tax Breakdown</h2>
+                    <div class="flex space-x-2">
+                        <select id="taxStatusFilter" class="rounded-lg p-2 border border-gray-300 text-sm">
+                            <option value="">All Statuses</option>
+                            <option value="Paid">Paid</option>
+                            <option value="Outstanding">Outstanding</option>
+                        </select>
+                        <input type="date" id="taxDateStart" class="rounded-lg p-2 border border-gray-300 text-sm">
+                        <input type="date" id="taxDateEnd" class="rounded-lg p-2 border border-gray-300 text-sm">
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-100 rounded-t-xl">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-xl">Tax Type</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-xl cursor-pointer" id="taxDateHeader">
+                                    Due Date
+                                    <span id="tax-sort-icon" class="ml-1 inline-block">
+                                        <svg class="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path></svg>
+                                    </span>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="taxTableBody" class="bg-white divide-y divide-gray-200">
+                            <!-- Tax data will be inserted here by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Management Dashboard (hidden for now) -->
+        <div id="managementDashboard" class="hidden">
+            <!-- Management KPI Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <!-- Total Revenue KPI -->
+                <div class="card p-8 rounded-3xl shadow-sm flex flex-col items-start">
+                    <div class="flex items-center justify-between w-full mb-4">
+                        <span class="text-sm font-medium text-gray-500">Total Revenue</span>
+                        <svg class="h-6 w-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2-.895-2-3-2zM9 17a3 3 0 013-3h.01a3 3 0 013 3v2H9v-2z" />
+                        </svg>
+                    </div>
+                    <p id="totalRevenue" class="text-3xl font-bold text-gray-900">Rp 1.2 M</p>
+                    <div class="flex items-center text-xs text-gray-400 mt-1">
+                        <span id="revenueTrend" class="flex items-center text-green-500">
+                            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10 7L5 12h10L10 7z" transform="rotate(180 10 9.5)"></path></svg> 5.2%
+                        </span>
+                        <span class="ml-1">vs. last month</span>
+                    </div>
+                </div>
+                <!-- Documents Processed KPI -->
+                <div class="card p-8 rounded-3xl shadow-sm flex flex-col items-start">
+                    <div class="flex items-center justify-between w-full mb-4">
+                        <span class="text-sm font-medium text-gray-500">Documents Processed</span>
+                        <svg class="h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.012 12.012 0 002.944 12c0 2.898.672 5.673 1.905 8.164M18 12a6 6 0 11-12 0 6 6 0 0112 0z" />
+                        </svg>
+                    </div>
+                    <p id="totalDocuments" class="text-3xl font-bold text-gray-900">452</p>
+                    <div class="flex items-center text-xs text-gray-400 mt-1">
+                        <span id="docsTrend" class="flex items-center text-green-500">
+                            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10 7L5 12h10L10 7z" transform="rotate(180 10 9.5)"></path></svg> 3.1%
+                        </span>
+                        <span class="ml-1">vs. last month</span>
+                    </div>
+                </div>
+                <!-- Average Profit Margin KPI -->
+                <div class="card p-8 rounded-3xl shadow-sm flex flex-col items-start">
+                    <div class="flex items-center justify-between w-full mb-4">
+                        <span class="text-sm font-medium text-gray-500">Average Profit Margin</span>
+                        <svg class="w-6 h-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h10M7 11h10M7 15h10M19 12l-7-7-7 7" />
+                        </svg>
+                    </div>
+                    <p id="avgProfitMargin" class="text-3xl font-bold text-gray-900">22%</p>
+                    <div class="flex items-center text-xs text-gray-400 mt-1">
+                        <span id="marginTrend" class="flex items-center text-green-500">
+                            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10 7L5 12h10L10 7z" transform="rotate(180 10 9.5)"></path></svg> 1.5%
+                        </span>
+                        <span class="ml-1">vs. last month</span>
+                    </div>
+                </div>
+
+                <!-- Session Overview Widget -->
+                <div class="card p-8 rounded-3xl shadow-sm flex flex-col items-center justify-center">
+                    <div class="flex items-center space-x-4 mb-2">
+                        <img src="https://placehold.co/50x50/a855f7/ffffff?text=JO" alt="User Avatar" class="rounded-full ring-2 ring-purple-400 ring-offset-2">
+                        <span class="text-lg font-semibold text-gray-800">Hello, ERP User</span>
+                    </div>
+                    <p id="currentTime4" class="text-3xl font-bold text-gray-900 my-2"></p>
+                    <p id="sessionTime4" class="text-sm text-gray-500"></p>
+                </div>
+            </div>
+
+            <!-- Management Charts and Tables -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <!-- Revenue and Document Trends Chart -->
+                <div class="card p-8 rounded-3xl shadow-sm">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">Firm-wide Trends (Last 12 Months)</h2>
+                    <canvas id="managementTrendsChart"></canvas>
+                </div>
+                <!-- Profitability by Service Chart -->
+                <div class="card p-8 rounded-3xl shadow-sm">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">Profitability by Service Type</h2>
+                    <canvas id="managementProfitChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Team Performance Summary Table -->
+            <div class="card p-8 rounded-3xl shadow-sm">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Team Performance Summary</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-100 rounded-t-xl">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-xl">Team</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notaries</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Docs Processed (QTD)</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Success Rate</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-xl">Avg. Proc. Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="teamSummaryTableBody" class="bg-white divide-y divide-gray-200">
+                            <!-- Data will be inserted by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const sessionStartTime = new Date();
+            let sortDirection = 'asc';
+            let charts = {}; // Object to hold chart instances
+
+            const assignmentsData = [
+                { id: 'AJB-014', client: 'Budi Santoso', type: 'Akta Jual Beli', status: 'Pending Review', deadline: '2023-10-15' },
+                { id: 'SKMHT-007', client: 'Citra Dewi', type: 'SKMHT', status: 'Drafted', deadline: '2023-10-18' },
+                { id: 'APHT-022', client: 'Fajar Kurniawan', type: 'APHT', status: 'Awaiting Signature', deadline: '2023-10-12' },
+                { id: 'Fidusia-003', client: 'Gita Lestari', type: 'Fidusia', status: 'Outstanding', deadline: '2023-10-01' },
+                { id: 'APHT-023', client: 'Hadi Prasetyo', type: 'APHT', status: 'Drafted', deadline: '2023-10-22' },
+                { id: 'Freezed-001', client: 'Rina Indah', type: 'Hibah', status: 'Freezed', deadline: '2023-09-01' },
+            ];
+
+            const supervisorActionData = [
+                { id: 'DOC-112', client: 'Joko Widodo', action: 'Verification Needed', status: 'Pending Verification', deadline: '2023-10-20' },
+                { id: 'DOC-120', client: 'Megawati Sukarno', action: 'Approval Required', status: 'Pending Approval', deadline: '2023-10-18' },
+                { id: 'DOC-125', client: 'Prabowo Subianto', action: 'Unassigned', status: 'Pending Assignment', deadline: '2023-10-25' },
+                { id: 'DOC-128', client: 'Anies Baswedan', action: 'Freeze Request', status: 'Pending Approval', deadline: '2023-10-22' }
+            ];
+
+            const financeActionData = [
+                { id: 'FIN-001', action: 'Reimbursement Approval', status: 'Pending Approval', date: '2023-10-25', priority: 'High' },
+                { id: 'FIN-002', action: 'Invoice Payment', status: 'Needs Payment', date: '2023-10-28', priority: 'High' },
+                { id: 'FIN-003', action: 'Invoice Generation', status: 'Needs Billed', date: '2023-11-01', priority: 'Medium' },
+                { id: 'FIN-004', action: 'Supplier Invoice', status: 'Needs Payment', date: '2023-11-05', priority: 'Medium' },
+                { id: 'FIN-005', action: 'Tax Filing', status: 'Needs Filing', date: '2023-11-15', priority: 'High' },
+                { id: 'FIN-006', action: 'Reimbursement Approval', status: 'Pending Approval', date: '2023-12-01', priority: 'Low' }
+            ];
+            const priorityOrder = { 'High': 1, 'Medium': 2, 'Low': 3 };
+
+            const taxData = [
+                { type: 'PPH Final', amount: 20000000, status: 'Paid', date: '2023-09-10' },
+                { type: 'BPHTB', amount: 30000000, status: 'Outstanding', date: '2023-11-15' },
+                { type: 'PPN', amount: 15000000, status: 'Paid', date: '2023-09-28' },
+                { type: 'PPH Final', amount: 10000000, status: 'Outstanding', date: '2023-11-01' },
+                { type: 'PPN', amount: 8000000, status: 'Outstanding', date: '2023-10-20' },
+                { type: 'BPHTB', amount: 45000000, status: 'Paid', date: '2023-08-05' },
+            ];
+
+            const managementData = {
+                totalRevenue: 1200000000,
+                revenueTrend: 5.2,
+                totalDocuments: 452,
+                docsTrend: 3.1,
+                avgProfitMargin: 22,
+                marginTrend: 1.5,
+                teamSummary: [
+                    { team: 'Team A', notaries: 4, docsQTD: 150, successRate: 92, avgTime: '4.1 Days' },
+                    { team: 'Team B', notaries: 3, docsQTD: 120, successRate: 95, avgTime: '3.8 Days' },
+                    { team: 'Team C', notaries: 5, docsQTD: 182, successRate: 90, avgTime: '4.5 Days' },
+                ]
+            };
+
+            const teamPerformanceData = {
+                'daily': [
+                    { name: 'Budi', successRate: 98, docsCompleted: 5 },
+                    { name: 'Siti', successRate: 95, docsCompleted: 4 },
+                    { name: 'Andi', successRate: 88, docsCompleted: 3 },
+                    { name: 'Dewi', successRate: 90, docsCompleted: 3 }
+                ],
+                'weekly': [
+                    { name: 'Budi', successRate: 97, docsCompleted: 22 },
+                    { name: 'Siti', successRate: 94, docsCompleted: 20 },
+                    { name: 'Andi', successRate: 87, docsCompleted: 18 },
+                    { name: 'Dewi', successRate: 91, docsCompleted: 19 }
+                ],
+                'monthly': [
+                    { name: 'Budi', successRate: 96, docsCompleted: 85 },
+                    { name: 'Siti', successRate: 93, docsCompleted: 80 },
+                    { name: 'Andi', successRate: 86, docsCompleted: 75 },
+                    { name: 'Dewi', successRate: 90, docsCompleted: 78 }
+                ],
+                'annually': [
+                    { name: 'Budi', successRate: 95, docsCompleted: 980 },
+                    { name: 'Siti', successRate: 92, docsCompleted: 950 },
+                    { name: 'Andi', successRate: 85, docsCompleted: 890 },
+                    { name: 'Dewi', successRate: 89, docsCompleted: 920 }
+                ]
+            };
+            
+            const teamSuccessRateTrendData = {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'],
+                datasets: [{
+                    label: 'Team Success Rate',
+                    data: [88, 89, 90, 91, 92, 91, 93, 92, 94, 95],
+                    borderColor: '#a855f7',
+                    tension: 0.4,
+                    fill: false,
+                    pointBackgroundColor: '#a855f7'
+                }]
+            };
+
+            const updateTimeAndSession = () => {
+                const now = new Date();
+                const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+                const currentTimeEl = document.getElementById('currentTime');
+                const currentTime2El = document.getElementById('currentTime2');
+                const currentTime3El = document.getElementById('currentTime3');
+                const currentTime4El = document.getElementById('currentTime4');
+                if (currentTimeEl) currentTimeEl.textContent = timeString;
+                if (currentTime2El) currentTime2El.textContent = timeString;
+                if (currentTime3El) currentTime3El.textContent = timeString;
+                if (currentTime4El) currentTime4El.textContent = timeString;
+
+                const sessionDurationMs = now.getTime() - sessionStartTime.getTime();
+                const sessionHours = Math.floor(sessionDurationMs / (1000 * 60 * 60));
+                const sessionMinutes = Math.floor((sessionDurationMs % (1000 * 60 * 60)) / (1000 * 60));
+                const sessionSeconds = Math.floor((sessionDurationMs % (1000 * 60)) / 1000);
+                const sessionTimeEl = document.getElementById('sessionTime');
+                const sessionTime2El = document.getElementById('sessionTime2');
+                const sessionTime3El = document.getElementById('sessionTime3');
+                const sessionTime4El = document.getElementById('sessionTime4');
+                if (sessionTimeEl) sessionTimeEl.textContent = `Session: ${sessionHours}h ${sessionMinutes}m ${sessionSeconds}s`;
+                if (sessionTime2El) sessionTime2El.textContent = `Session: ${sessionHours}h ${sessionMinutes}m ${sessionSeconds}s`;
+                if (sessionTime3El) sessionTime3El.textContent = `Session: ${sessionHours}h ${sessionMinutes}m ${sessionSeconds}s`;
+                if (sessionTime4El) sessionTime4El.textContent = `Session: ${sessionHours}h ${sessionMinutes}m ${sessionSeconds}s`;
+            };
+
+            const renderAssignmentsTable = (data) => {
+                const tableBody = document.getElementById('assignmentsTableBody');
+                if (!tableBody) return;
+                tableBody.innerHTML = '';
+                data.forEach(assignment => {
+                    let statusColor = '';
+                    if (assignment.status === 'Pending Review') {
+                        statusColor = 'bg-yellow-100 text-yellow-800';
+                    } else if (assignment.status === 'Awaiting Signature') {
+                        statusColor = 'bg-orange-100 text-orange-800';
+                    } else if (assignment.status === 'Outstanding') {
+                        statusColor = 'bg-red-100 text-red-800';
+                    } else if (assignment.status === 'Freezed') {
+                        statusColor = 'bg-gray-100 text-gray-800';
+                    } else {
+                         statusColor = 'bg-blue-100 text-blue-800';
+                    }
+                    
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-gray-50';
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${assignment.id}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${assignment.client}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${assignment.type}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColor}">
+                                ${assignment.status}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${assignment.deadline}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            };
+
+            const filterAndSortAssignments = () => {
+                const clientFilter = document.getElementById('clientFilter');
+                const typeFilter = document.getElementById('typeFilter');
+                const statusFilter = document.getElementById('statusFilter');
+
+                if (!clientFilter || !typeFilter || !statusFilter) return;
+
+                const clientFilterValue = clientFilter.value.toLowerCase();
+                const typeFilterValue = typeFilter.value.toLowerCase();
+                const statusFilterValue = statusFilter.value.toLowerCase();
+
+                let filteredData = assignmentsData.filter(assignment => {
+                    const clientMatch = assignment.client.toLowerCase().includes(clientFilterValue);
+                    const typeMatch = assignment.type.toLowerCase().includes(typeFilterValue);
+                    const statusMatch = statusFilterValue === '' || assignment.status.toLowerCase() === statusFilterValue;
+                    return clientMatch && typeMatch && statusMatch;
+                });
+
+                // Sort the filtered data by deadline
+                filteredData.sort((a, b) => {
+                    const dateA = new Date(a.deadline);
+                    const dateB = new Date(b.deadline);
+                    return sortDirection === 'asc' ? dateA - dateB : dateB - dateA;
+                });
+
+                renderAssignmentsTable(filteredData);
+            };
+
+            const renderSupervisorActionTable = (data) => {
+                const tableBody = document.getElementById('supervisorAssignmentsTableBody');
+                if (!tableBody) return;
+                tableBody.innerHTML = '';
+                data.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-gray-50';
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-500 hover:underline">
+                            <a href="#">${item.id}</a>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.client}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.action}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.status}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.deadline}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            };
+            
+            const renderFinanceActionTable = (data) => {
+                const tableBody = document.getElementById('financeActionsTableBody');
+                if (!tableBody) return;
+                tableBody.innerHTML = '';
+                data.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-gray-50';
+                    let statusColor = '';
+                    let priorityColor = '';
+                    if (item.status === 'Pending Approval' || item.status === 'Needs Billed' || item.status === 'Needs Filing') {
+                        statusColor = 'bg-yellow-100 text-yellow-800';
+                    } else if (item.status === 'Needs Payment') {
+                        statusColor = 'bg-red-100 text-red-800';
+                    } else {
+                        statusColor = 'bg-blue-100 text-blue-800';
+                    }
+
+                    if (item.priority === 'High') {
+                        priorityColor = 'bg-red-500 text-white';
+                    } else if (item.priority === 'Medium') {
+                        priorityColor = 'bg-yellow-400 text-white';
+                    } else {
+                        priorityColor = 'bg-gray-400 text-white';
+                    }
+
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${priorityColor}">
+                                ${item.priority}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-500 hover:underline">
+                            <a href="#">${item.id}</a>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.action}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColor}">
+                                ${item.status}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.date}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            };
+
+             const renderTaxTable = (data) => {
+                const tableBody = document.getElementById('taxTableBody');
+                if (!tableBody) return;
+                tableBody.innerHTML = '';
+                data.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-gray-50';
+                    let statusColor = item.status === 'Paid' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.type}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Rp ${item.amount.toLocaleString('id-ID')}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColor}">
+                                ${item.status}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.date}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            };
+
+            const renderTeamSummaryTable = (data) => {
+                const tableBody = document.getElementById('teamSummaryTableBody');
+                if (!tableBody) return;
+                tableBody.innerHTML = '';
+                data.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-gray-50';
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.team}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.notaries}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.docsQTD}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.successRate}%</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.avgTime}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            };
+
+
+            const filterAndSortFinanceActions = () => {
+                const priorityFilter = document.getElementById('priorityFilter');
+                if (!priorityFilter) return;
+
+                const priorityFilterValue = priorityFilter.value;
+                const filteredData = financeActionData.filter(action => {
+                    return priorityFilterValue === '' || action.priority === priorityFilterValue;
+                });
+
+                filteredData.sort((a, b) => {
+                    const aDate = new Date(a.date);
+                    const bDate = new Date(b.date);
+                    const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
+
+                    if (sortDirection === 'asc') {
+                        return priorityDiff !== 0 ? priorityDiff : aDate - bDate;
+                    } else {
+                        return priorityDiff !== 0 ? priorityDiff : bDate - aDate;
+                    }
+                });
+                renderFinanceActionTable(filteredData);
+            };
+
+            const filterAndSortTaxData = () => {
+                const taxStatusFilter = document.getElementById('taxStatusFilter');
+                const taxDateStart = document.getElementById('taxDateStart');
+                const taxDateEnd = document.getElementById('taxDateEnd');
+                
+                if(!taxStatusFilter || !taxDateStart || !taxDateEnd) return;
+
+                const taxStatusFilterValue = taxStatusFilter.value;
+                const taxDateStartValue = taxDateStart.value ? new Date(taxDateStart.value) : null;
+                const taxDateEndValue = taxDateEnd.value ? new Date(taxDateEnd.value) : null;
+
+                let filteredData = taxData.filter(item => {
+                    const statusMatch = taxStatusFilterValue === '' || item.status === taxStatusFilterValue;
+                    const itemDate = new Date(item.date);
+                    const dateMatch = (!taxDateStartValue || itemDate >= taxDateStartValue) && (!taxDateEndValue || itemDate <= taxDateEndValue);
+                    return statusMatch && dateMatch;
+                });
+
+                filteredData.sort((a, b) => {
+                    const dateA = new Date(a.date);
+                    const dateB = new Date(b.date);
+                    return sortDirection === 'asc' ? dateA - dateB : dateB - dateA;
+                });
+
+                renderTaxTable(filteredData);
+            };
+
+
+            const renderLeaderboard = (timePeriod) => {
+                const tableBody = document.getElementById('leaderboardTableBody');
+                if (!tableBody) return;
+                const data = teamPerformanceData[timePeriod];
+                data.sort((a, b) => b.docsCompleted - a.docsCompleted);
+                tableBody.innerHTML = '';
+                data.forEach((member, index) => {
+                    const rank = index + 1;
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-gray-50';
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${rank}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${member.name}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${member.successRate}%</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${member.docsCompleted}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            };
+
+            const renderDashboard = (role) => {
+                const dashboards = ['operationalDashboard', 'supervisorDashboard', 'financeDashboard', 'managementDashboard'];
+                dashboards.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.classList.add('hidden');
+                });
+                const currentDashboard = document.getElementById(`${role}Dashboard`);
+                if (currentDashboard) currentDashboard.classList.remove('hidden');
+
+                const dashboardTitle = document.getElementById('dashboardTitle');
+                const roleTitles = {
+                    'operational': 'Operational Dashboard',
+                    'supervisor': 'Supervisor Dashboard',
+                    'finance': 'Finance Dashboard',
+                    'management': 'Management Dashboard'
+                };
+                if (dashboardTitle) dashboardTitle.textContent = roleTitles[role];
+
+                // Update the active menu item
+                const menuItems = document.querySelectorAll('.role-menu-item');
+                menuItems.forEach(item => {
+                    if (item.dataset.role === role) {
+                        item.classList.add('active');
+                    } else {
+                        item.classList.remove('active');
+                    }
+                });
+
+                // Destroy existing chart instances before rendering new ones
+                for (const chartName in charts) {
+                  if (charts[chartName]) {
+                    charts[chartName].destroy();
+                    charts[chartName] = null;
+                  }
+                }
+
+                if (role === 'operational') {
+                    // Operational dummy data
+                    const kpiData = {
+                        successRate: 85,
+                        finishedDocuments: 42,
+                        inProgressDocuments: 5,
+                        outstandingDocuments: 3,
+                        freezedDocuments: 1
+                    };
+                    kpiData.totalDocuments = kpiData.finishedDocuments + kpiData.inProgressDocuments + kpiData.outstandingDocuments + kpiData.freezedDocuments;
+
+                    // Check if elements exist before updating
+                    const successRateValueEl = document.getElementById('successRateValue');
+                    const finishedDocsEl = document.getElementById('finishedDocs');
+                    const outstandingDocsEl = document.getElementById('outstandingDocs');
+                    const inProgressDocsEl = document.getElementById('inProgressDocs');
+                    const freezedDocsEl = document.getElementById('freezedDocs');
+                    const progressBarEl = document.querySelector('#operationalDashboard .bg-blue-400');
+                    const gaugeFillEl = document.getElementById('successGauge');
+                    
+                    if (successRateValueEl) successRateValueEl.textContent = `${kpiData.successRate}%`;
+                    if (finishedDocsEl) finishedDocsEl.textContent = kpiData.finishedDocuments;
+                    if (outstandingDocsEl) outstandingDocsEl.textContent = kpiData.outstandingDocuments;
+                    if (inProgressDocsEl) inProgressDocsEl.textContent = kpiData.inProgressDocuments;
+                    if (freezedDocsEl) freezedDocsEl.textContent = kpiData.freezedDocuments;
+
+                    if (progressBarEl) {
+                        const progressPercentage = (kpiData.finishedDocuments / kpiData.totalDocuments) * 100;
+                        progressBarEl.style.width = `${progressPercentage}%`;
+                    }
+                    if (gaugeFillEl) gaugeFillEl.style.setProperty('--fill-percentage', `${kpiData.successRate}%`);
+
+                    // Dummy data for charts
+                    const documentFunnelData = {
+                        labels: ['Drafted', 'Submitted to BPN', 'BPN Approved', 'Signed', 'Freezed'],
+                        datasets: [{
+                            label: 'Document Flow',
+                            data: [100, 95, 85, 80, 5],
+                            backgroundColor: ['#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#cbd5e1'],
+                            borderWidth: 0,
+                            borderSkipped: false
+                        }]
+                    };
+
+                    const performanceData = {
+                        labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                        datasets: [{
+                            label: 'Documents Completed',
+                            data: [10, 12, 11, 9],
+                            backgroundColor: '#818cf8',
+                            borderRadius: 4,
+                        },
+                        {
+                            label: 'Target',
+                            data: [11, 11, 11, 11],
+                            type: 'line',
+                            borderColor: '#a855f7',
+                            borderWidth: 2,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#a855f7',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            fill: false,
+                        }]
+                    };
+            
+                    // Chart configuration
+                    const funnelCanvas = document.getElementById('documentFunnelChart');
+                    if (funnelCanvas) {
+                      const funnelCtx = funnelCanvas.getContext('2d');
+                      charts.funnel = new Chart(funnelCtx, {
+                          type: 'bar',
+                          data: documentFunnelData,
+                          options: {
+                              indexAxis: 'y',
+                              responsive: true,
+                              scales: {
+                                  x: {
+                                      display: false,
+                                      stacked: true,
+                                  },
+                                  y: {
+                                      stacked: true,
+                                  }
+                              },
+                              plugins: {
+                                  legend: {
+                                      display: false
+                                  },
+                                  tooltip: {
+                                      callbacks: {
+                                          label: function(context) {
+                                              let label = context.dataset.label || '';
+                                              if (label) {
+                                                  label += ': ';
+                                              }
+                                              if (context.parsed.x !== null) {
+                                                  label += context.parsed.x + '%';
+                                              }
+                                              return label;
+                                          }
+                                      }
+                                  }
+                              },
+                              layout: {
+                                  padding: 20
+                              }
+                          }
+                      });
+                    }
+
+                    const performanceCanvas = document.getElementById('performanceChart');
+                    if (performanceCanvas) {
+                      const performanceCtx = performanceCanvas.getContext('2d');
+                      charts.performance = new Chart(performanceCtx, {
+                          type: 'bar',
+                          data: performanceData,
+                          options: {
+                              responsive: true,
+                              scales: {
+                                  y: {
+                                      beginAtZero: true,
+                                      grid: {
+                                          color: 'rgba(0, 0, 0, 0.05)',
+                                      }
+                                  },
+                                  x: {
+                                      grid: {
+                                          display: false
+                                      }
+                                  }
+                              },
+                              plugins: {
+                                  legend: {
+                                      position: 'top',
+                                  }
+                              }
+                          }
+                      });
+                    }
+                    filterAndSortAssignments();
+                } else if (role === 'supervisor') {
+                    // Supervisor dummy data
+                    const kpiData = {
+                        docsProcessed: 150,
+                        target: 200,
+                        successRate: 92,
+                        avgProcessingTime: '4.1 Days',
+                        avgTimeTrend: -2.3 // Negative for improvement
+                    };
+
+                    // Update KPI card values
+                    const teamTargetProgressEl = document.getElementById('teamTargetProgress');
+                    const teamTargetTextEl = document.querySelector('#supervisorDashboard .card:nth-child(1) p.text-xs');
+                    const teamTargetProgressBarEl = document.querySelector('#supervisorDashboard .card:nth-child(1) .bg-yellow-400');
+                    const teamSuccessRateEl = document.getElementById('teamSuccessRate');
+                    const avgProcessingTimeEl = document.getElementById('avgProcessingTime');
+                    const avgTimeTrendEl = document.getElementById('avgTimeTrend');
+
+                    if (teamTargetProgressEl) teamTargetProgressEl.textContent = `${Math.round((kpiData.docsProcessed / kpiData.target) * 100)}%`;
+                    if (teamTargetTextEl) teamTargetTextEl.textContent = `${kpiData.docsProcessed} of ${kpiData.target} Docs completed`;
+                    if (teamTargetProgressBarEl) teamTargetProgressBarEl.style.width = `${Math.round((kpiData.docsProcessed / kpiData.target) * 100)}%`;
+                    if (teamSuccessRateEl) teamSuccessRateEl.textContent = `${kpiData.successRate}%`;
+                    if (avgProcessingTimeEl) avgProcessingTimeEl.textContent = kpiData.avgProcessingTime;
+                    
+                    if (avgTimeTrendEl) {
+                        const trendIcon = avgTimeTrendEl.querySelector('svg');
+                        if (kpiData.avgTimeTrend < 0) { // Time improvement is a positive trend
+                            avgTimeTrendEl.classList.remove('text-red-500');
+                            avgTimeTrendEl.classList.add('text-green-500');
+                            if (trendIcon) trendIcon.style.transform = 'rotate(0deg)';
+                        } else {
+                            avgTimeTrendEl.classList.remove('text-green-500');
+                            avgTimeTrendEl.classList.add('text-red-500');
+                            if (trendIcon) trendIcon.style.transform = 'rotate(180deg)';
+                        }
+                        avgTimeTrendEl.textContent = `${Math.abs(kpiData.avgTimeTrend)}% vs. last month`;
+                    }
+
+                    // Render action table
+                    renderSupervisorActionTable(supervisorActionData);
+
+                    // Chart data
+                    const teamPerformanceChartData = {
+                        labels: ['Budi', 'Siti', 'Andi', 'Dewi'],
+                        datasets: [{
+                            label: 'Documents Processed',
+                            data: [50, 45, 40, 52],
+                            backgroundColor: '#818cf8',
+                            borderRadius: 4,
+                        }]
+                    };
+
+                    const teamPerformanceCanvas = document.getElementById('teamPerformanceChart');
+                    if (teamPerformanceCanvas) {
+                      const teamPerformanceCtx = teamPerformanceCanvas.getContext('2d');
+                      charts.teamPerformance = new Chart(teamPerformanceCtx, {
+                          type: 'bar',
+                          data: teamPerformanceChartData,
+                          options: {
+                              responsive: true,
+                              scales: {
+                                  y: { beginAtZero: true },
+                              },
+                              plugins: {
+                                  legend: { display: false }
+                              }
+                          }
+                      });
+                    }
+
+                    const teamSuccessRateTrendCanvas = document.getElementById('teamSuccessRateTrendChart');
+                    if (teamSuccessRateTrendCanvas) {
+                      const teamSuccessRateTrendCtx = teamSuccessRateTrendCanvas.getContext('2d');
+                      charts.teamSuccessRateTrend = new Chart(teamSuccessRateTrendCtx, {
+                          type: 'line',
+                          data: teamSuccessRateTrendData,
+                          options: {
+                              responsive: true,
+                              scales: {
+                                  y: {
+                                      beginAtZero: false,
+                                      min: 80,
+                                      max: 100
+                                  }
+                              },
+                              plugins: {
+                                  legend: { position: 'top' }
+                              }
+                          }
+                      });
+                    }
+                    
+                    renderLeaderboard('weekly'); // Default leaderboard view
+                } else if (role === 'finance') {
+                    // Finance dummy data
+                    const financialData = {
+                        cashBalance: 150000000,
+                        accountsPayable: 25000000,
+                        accountsReceivable: 45000000,
+                        projectedCashFlow: {
+                            labels: ['Nov', 'Dec', 'Jan', 'Feb'],
+                            datasets: [{
+                                label: 'Cash Inflow (in Millions)',
+                                data: [40, 50, 45, 60],
+                                borderColor: '#10b981',
+                                backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                                fill: true,
+                                tension: 0.4,
+                            },
+                            {
+                                label: 'Cash Outflow (in Millions)',
+                                data: [30, 40, 35, 45],
+                                borderColor: '#ef4444',
+                                backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                                fill: true,
+                                tension: 0.4,
+                            }]
+                        },
+                        profitMargin: {
+                            labels: ['AJB', 'SKMHT', 'APHT', 'Fidusia'],
+                            data: [35, 25, 20, 15] // in %
+                        }
+                    };
+                    
+                    const taxData = [
+                        { type: 'PPH Final', amount: 20000000, status: 'Paid', date: '2023-09-10' },
+                        { type: 'BPHTB', amount: 30000000, status: 'Outstanding', date: '2023-11-15' },
+                        { type: 'PPN', amount: 15000000, status: 'Paid', date: '2023-09-28' },
+                        { type: 'PPH Final', amount: 10000000, status: 'Outstanding', date: '2023-11-01' },
+                        { type: 'PPN', amount: 8000000, status: 'Outstanding', date: '2023-10-20' },
+                        { type: 'BPHTB', amount: 45000000, status: 'Paid', date: '2023-08-05' },
+                    ];
+
+                    // Update KPI cards
+                    const cashBalanceEl = document.getElementById('cashBalance');
+                    const accountsPayableEl = document.getElementById('accountsPayable');
+                    const accountsReceivableEl = document.getElementById('accountsReceivable');
+                    
+                    if(cashBalanceEl) cashBalanceEl.textContent = `Rp ${financialData.cashBalance.toLocaleString('id-ID')}`;
+                    if(accountsPayableEl) accountsPayableEl.textContent = `Rp ${financialData.accountsPayable.toLocaleString('id-ID')}`;
+                    if(accountsReceivableEl) accountsReceivableEl.textContent = `Rp ${financialData.accountsReceivable.toLocaleString('id-ID')}`;
+
+                    // Render finance actions table
+                    filterAndSortFinanceActions();
+
+                    // Render tax table
+                    filterAndSortTaxData();
+
+                    // Chart data
+                    const projectedCashFlowCanvas = document.getElementById('projectedCashFlowChart');
+                    if (projectedCashFlowCanvas) {
+                      const projectedCashFlowCtx = projectedCashFlowCanvas.getContext('2d');
+                      charts.projectedCashFlow = new Chart(projectedCashFlowCtx, {
+                          type: 'line',
+                          data: financialData.projectedCashFlow,
+                          options: { responsive: true }
+                      });
+                    }
+
+                    const profitMarginCanvas = document.getElementById('profitMarginChart');
+                    if (profitMarginCanvas) {
+                      const profitMarginCtx = profitMarginCanvas.getContext('2d');
+                      charts.profitMargin = new Chart(profitMarginCtx, {
+                          type: 'bar',
+                          data: {
+                              labels: financialData.profitMargin.labels,
+                              datasets: [{
+                                  label: 'Net Profit Margin (%)',
+                                  data: financialData.profitMargin.data,
+                                  backgroundColor: ['#6366f1', '#8b5cf6', '#a855f7', '#d946ef'],
+                                  borderRadius: 4,
+                              }]
+                          },
+                          options: {
+                            responsive: true,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: 'Net Profit Margin (%)'
+                                    }
+                                }
+                            },
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                  callbacks: {
+                                    label: function(context) {
+                                      let label = context.dataset.label || '';
+                                      if (label) {
+                                          label += ': ';
+                                      }
+                                      if (context.parsed.y !== null) {
+                                          label += context.parsed.y + '%';
+                                      }
+                                      return label;
+                                    }
+                                  }
+                                }
+                            }
+                          }
+                      });
+                    }
+                } else if (role === 'management') {
+                    // Management dummy data
+                    const managementData = {
+                        totalRevenue: 1200000000,
+                        revenueTrend: 5.2,
+                        totalDocuments: 452,
+                        docsTrend: 3.1,
+                        avgProfitMargin: 22,
+                        marginTrend: 1.5,
+                        teamSummary: [
+                            { team: 'Team A', notaries: 4, docsQTD: 150, successRate: 92, avgTime: '4.1 Days' },
+                            { team: 'Team B', notaries: 3, docsQTD: 120, successRate: 95, avgTime: '3.8 Days' },
+                            { team: 'Team C', notaries: 5, docsQTD: 182, successRate: 90, avgTime: '4.5 Days' },
+                        ]
+                    };
+
+                    const trendsData = {
+                        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'],
+                        datasets: [
+                            {
+                                label: 'Total Revenue (in M Rp)',
+                                data: [80, 85, 90, 95, 100, 110, 105, 115, 120, 125],
+                                borderColor: '#10b981',
+                                tension: 0.4,
+                                fill: false,
+                                yAxisID: 'y1'
+                            },
+                            {
+                                label: 'Documents Processed',
+                                data: [35, 38, 40, 42, 45, 48, 46, 49, 52, 55],
+                                borderColor: '#3b82f6',
+                                tension: 0.4,
+                                fill: false,
+                                yAxisID: 'y2'
+                            }
+                        ]
+                    };
+                    
+                    const profitabilityData = {
+                        labels: ['Akta Jual Beli', 'SKMHT', 'APHT', 'Fidusia'],
+                        datasets: [{
+                            label: 'Net Profit Margin (%)',
+                            data: [25, 22, 18, 15],
+                            backgroundColor: ['#6366f1', '#8b5cf6', '#a855f7', '#d946ef'],
+                            borderRadius: 4,
+                        }]
+                    };
+
+                    // Update KPI cards
+                    const totalRevenueEl = document.getElementById('totalRevenue');
+                    const revenueTrendEl = document.getElementById('revenueTrend');
+                    const totalDocumentsEl = document.getElementById('totalDocuments');
+                    const docsTrendEl = document.getElementById('docsTrend');
+                    const avgProfitMarginEl = document.getElementById('avgProfitMargin');
+                    const marginTrendEl = document.getElementById('marginTrend');
+                    
+                    if (totalRevenueEl) totalRevenueEl.textContent = `Rp ${(managementData.totalRevenue / 1000000000).toFixed(1)} M`;
+                    if (revenueTrendEl) revenueTrendEl.textContent = `${managementData.revenueTrend}% vs. last month`;
+                    if (totalDocumentsEl) totalDocumentsEl.textContent = managementData.totalDocuments;
+                    if (docsTrendEl) docsTrendEl.textContent = `${managementData.docsTrend}% vs. last month`;
+                    if (avgProfitMarginEl) avgProfitMarginEl.textContent = `${managementData.avgProfitMargin}%`;
+                    if (marginTrendEl) marginTrendEl.textContent = `${managementData.marginTrend}% vs. last month`;
+
+                    // Render team summary table
+                    renderTeamSummaryTable(managementData.teamSummary);
+
+                    // Chart configuration
+                    const trendsCanvas = document.getElementById('managementTrendsChart');
+                    if(trendsCanvas) {
+                        const trendsCtx = trendsCanvas.getContext('2d');
+                        charts.trends = new Chart(trendsCtx, {
+                            type: 'line',
+                            data: trendsData,
+                            options: {
+                                responsive: true,
+                                interaction: {
+                                    mode: 'index',
+                                    intersect: false,
+                                },
+                                scales: {
+                                    y1: {
+                                        type: 'linear',
+                                        display: true,
+                                        position: 'left',
+                                        title: {
+                                            display: true,
+                                            text: 'Revenue (in M Rp)'
+                                        },
+                                        grid: {
+                                            color: 'rgba(0, 0, 0, 0.05)',
+                                        }
+                                    },
+                                    y2: {
+                                        type: 'linear',
+                                        display: true,
+                                        position: 'right',
+                                        title: {
+                                            display: true,
+                                            text: 'Documents Processed'
+                                        },
+                                        grid: {
+                                            drawOnChartArea: false,
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    }
+                    
+                    const profitCanvas = document.getElementById('managementProfitChart');
+                    if(profitCanvas) {
+                        const profitCtx = profitCanvas.getContext('2d');
+                        charts.profit = new Chart(profitCtx, {
+                            type: 'bar',
+                            data: profitabilityData,
+                            options: {
+                                responsive: true,
+                                scales: {
+                                    y: {
+                                        beginAtZero: true,
+                                        title: {
+                                            display: true,
+                                            text: 'Net Profit Margin (%)'
+                                        },
+                                        max: 30
+                                    }
+                                },
+                                plugins: {
+                                    legend: { display: false }
+                                }
+                            }
+                        });
+                    }
+                }
+            };
+            
+            // Initial render and time update
+            renderDashboard('operational');
+            updateTimeAndSession();
+            setInterval(updateTimeAndSession, 1000);
+
+            // Listen for profile icon click to toggle the menu
+            document.getElementById('profileIcon').addEventListener('click', (event) => {
+                const roleMenu = document.getElementById('roleMenu');
+                if (roleMenu) {
+                  roleMenu.classList.toggle('hidden');
+                }
+                event.stopPropagation(); // Prevents the body click listener from firing immediately
+            });
+            
+            // Listen for role selection in the menu
+            document.getElementById('roleMenu').addEventListener('click', (event) => {
+                const menuItem = event.target.closest('.role-menu-item');
+                if (menuItem) {
+                    const role = menuItem.dataset.role;
+                    renderDashboard(role);
+                    document.getElementById('roleMenu').classList.add('hidden'); // Hide the menu after selection
+                }
+            });
+
+            // Hide the menu if the user clicks anywhere else
+            document.body.addEventListener('click', () => {
+                const roleMenu = document.getElementById('roleMenu');
+                if (roleMenu) {
+                  roleMenu.classList.add('hidden');
+                }
+            });
+
+            // Listen for filter changes
+            const clientFilterEl = document.getElementById('clientFilter');
+            if(clientFilterEl) clientFilterEl.addEventListener('input', filterAndSortAssignments);
+
+            const typeFilterEl = document.getElementById('typeFilter');
+            if(typeFilterEl) typeFilterEl.addEventListener('input', filterAndSortAssignments);
+            
+            const statusFilterEl = document.getElementById('statusFilter');
+            if(statusFilterEl) statusFilterEl.addEventListener('change', filterAndSortAssignments);
+
+            // Listen for sort click
+            const deadlineHeaderEl = document.getElementById('deadlineHeader');
+            if(deadlineHeaderEl) {
+              deadlineHeaderEl.addEventListener('click', () => {
+                  sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+                  const sortIcon = document.getElementById('sort-icon');
+                  if (sortIcon) {
+                    sortIcon.innerHTML = sortDirection === 'asc' ? 
+                        `<svg class="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path></svg>` : 
+                        `<svg class="w-3 h-3 text-gray-500 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path></svg>`;
+                  }
+                  filterAndSortAssignments();
+              });
+            }
+
+            // Listen for leaderboard time period changes
+            const supervisorDashboardEl = document.getElementById('supervisorDashboard');
+            if (supervisorDashboardEl) {
+              supervisorDashboardEl.addEventListener('click', (event) => {
+                  const button = event.target.closest('button[data-time-period]');
+                  if (button) {
+                      const timePeriod = button.dataset.timePeriod;
+                      const buttons = document.querySelectorAll('#supervisorDashboard button[data-time-period]');
+                      buttons.forEach(btn => {
+                          btn.classList.remove('bg-blue-500', 'text-white');
+                          btn.classList.add('bg-gray-200', 'text-gray-700');
+                      });
+                      button.classList.remove('bg-gray-200', 'text-gray-700');
+                      button.classList.add('bg-blue-500', 'text-white');
+                      renderLeaderboard(timePeriod);
+                  }
+              });
+            }
+
+            // Listen for finance action filtering and sorting
+            const priorityFilterEl = document.getElementById('priorityFilter');
+            if (priorityFilterEl) priorityFilterEl.addEventListener('change', filterAndSortFinanceActions);
+
+            const priorityHeaderEl = document.getElementById('priorityHeader');
+            if (priorityHeaderEl) {
+              priorityHeaderEl.addEventListener('click', () => {
+                  sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+                  const sortIcon = document.getElementById('priority-sort-icon');
+                  if (sortIcon) {
+                    sortIcon.innerHTML = sortDirection === 'asc' ? 
+                        `<svg class="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path></svg>` : 
+                        `<svg class="w-3 h-3 text-gray-500 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path></svg>`;
+                  }
+                  filterAndSortFinanceActions();
+              });
+            }
+
+            const financeActionDateHeaderEl = document.getElementById('financeActionDateHeader');
+            if(financeActionDateHeaderEl) {
+                financeActionDateHeaderEl.addEventListener('click', () => {
+                    sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+                    const sortIcon = document.getElementById('finance-date-sort-icon');
+                    if (sortIcon) {
+                      sortIcon.innerHTML = sortDirection === 'asc' ? 
+                          `<svg class="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path></svg>` : 
+                          `<svg class="w-3 h-3 text-gray-500 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path></svg>`;
+                    }
+                    filterAndSortFinanceActions();
+                });
+            }
+
+            // Listen for tax table filtering and sorting
+            const taxStatusFilterEl = document.getElementById('taxStatusFilter');
+            if(taxStatusFilterEl) taxStatusFilterEl.addEventListener('change', filterAndSortTaxData);
+
+            const taxDateStartEl = document.getElementById('taxDateStart');
+            if(taxDateStartEl) taxDateStartEl.addEventListener('change', filterAndSortTaxData);
+
+            const taxDateEndEl = document.getElementById('taxDateEnd');
+            if(taxDateEndEl) taxDateEndEl.addEventListener('change', filterAndSortTaxData);
+
+            const taxDateHeaderEl = document.getElementById('taxDateHeader');
+            if (taxDateHeaderEl) {
+                taxDateHeaderEl.addEventListener('click', () => {
+                    sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+                    const sortIcon = document.getElementById('tax-sort-icon');
+                    if(sortIcon) {
+                        sortIcon.innerHTML = sortDirection === 'asc' ? 
+                            `<svg class="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path></svg>` : 
+                            `<svg class="w-3 h-3 text-gray-500 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path></svg>`;
+                    }
+                    filterAndSortTaxData();
+                });
+            }
+        });
+    </script>
+</body>
+</html>
