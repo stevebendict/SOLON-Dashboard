@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -316,7 +316,7 @@
                     <div class="flex items-center justify-between mb-4">
                         <span class="text-sm font-medium text-gray-500">Financial Snapshot</span>
                         <svg class="h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2-3 2 3-.895 3-2-.895-2-3-2zM9 17a3 3 0 013-3h.01a3 3 0 013 3v2H9v-2z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2-.895-2-3-2zM9 17a3 3 0 013-3h.01a3 3 0 013 3v2H9v-2z" />
                         </svg>
                     </div>
                     <div class="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
@@ -539,315 +539,467 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // Waktu mulai sesi untuk menghitung durasi
             const sessionStartTime = new Date();
             let sortDirection = 'asc';
-            let charts = {}; // Object to hold chart instances
+            let charts = {}; // Objek untuk menyimpan instance chart
 
-            const assignmentsData = [
-                { id: 'AJB-014', client: 'Budi Santoso', type: 'Akta Jual Beli', status: 'Pending Review', deadline: '2023-10-15' },
-                { id: 'SKMHT-007', client: 'Citra Dewi', type: 'SKMHT', status: 'Drafted', deadline: '2023-10-18' },
-                { id: 'APHT-022', client: 'Fajar Kurniawan', type: 'APHT', status: 'Awaiting Signature', deadline: '2023-10-12' },
-                { id: 'Fidusia-003', client: 'Gita Lestari', type: 'Fidusia', status: 'Outstanding', deadline: '2023-10-01' },
-                { id: 'APHT-023', client: 'Hadi Prasetyo', type: 'APHT', status: 'Drafted', deadline: '2023-10-22' },
-                { id: 'Freezed-001', client: 'Rina Indah', type: 'Hibah', status: 'Freezed', deadline: '2023-09-01' },
-            ];
+            // --- Data Simulasi (Dummy Data) ---
+            const data = {
+                // Data untuk Operational Dashboard
+                operational: {
+                    kpi: {
+                        successRate: 85,
+                        finishedDocuments: 42,
+                        inProgressDocuments: 5,
+                        outstandingDocuments: 3,
+                        freezedDocuments: 1
+                    },
+                    assignments: [
+                        { id: 'AJB-014', client: 'Budi Santoso', type: 'Akta Jual Beli', status: 'Pending Review', deadline: '2023-10-15' },
+                        { id: 'SKMHT-007', client: 'Citra Dewi', type: 'SKMHT', status: 'Drafted', deadline: '2023-10-18' },
+                        { id: 'APHT-022', client: 'Fajar Kurniawan', type: 'APHT', status: 'Awaiting Signature', deadline: '2023-10-12' },
+                        { id: 'Fidusia-003', client: 'Gita Lestari', type: 'Fidusia', status: 'Outstanding', deadline: '2023-10-01' },
+                        { id: 'APHT-023', client: 'Hadi Prasetyo', type: 'APHT', status: 'Drafted', deadline: '2023-10-22' },
+                        { id: 'Freezed-001', client: 'Rina Indah', type: 'Hibah', status: 'Freezed', deadline: '2023-09-01' },
+                    ],
+                    charts: {
+                        funnel: {
+                            labels: ['Drafted', 'Submitted to BPN', 'BPN Approved', 'Signed', 'Freezed'],
+                            data: [100, 95, 85, 80, 5],
+                            colors: ['#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#cbd5e1']
+                        },
+                        performance: {
+                            labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                            docsCompleted: [10, 12, 11, 9],
+                            target: [11, 11, 11, 11]
+                        }
+                    }
+                },
+                // Data untuk Supervisor Dashboard
+                supervisor: {
+                    kpi: {
+                        docsProcessed: 150,
+                        target: 200,
+                        successRate: 92,
+                        avgProcessingTime: '4.1 Days',
+                        avgTimeTrend: -2.3 
+                    },
+                    actions: [
+                        { id: 'DOC-112', client: 'Joko Widodo', action: 'Verification Needed', status: 'Pending Verification', deadline: '2023-10-20' },
+                        { id: 'DOC-120', client: 'Megawati Sukarno', action: 'Approval Required', status: 'Pending Approval', deadline: '2023-10-18' },
+                        { id: 'DOC-125', client: 'Prabowo Subianto', action: 'Unassigned', status: 'Pending Assignment', deadline: '2023-10-25' },
+                        { id: 'DOC-128', client: 'Anies Baswedan', action: 'Freeze Request', status: 'Pending Approval', deadline: '2023-10-22' }
+                    ],
+                    leaderboard: {
+                        daily: [
+                            { name: 'Budi', successRate: 98, docsCompleted: 5 },
+                            { name: 'Siti', successRate: 95, docsCompleted: 4 },
+                            { name: 'Andi', successRate: 88, docsCompleted: 3 },
+                            { name: 'Dewi', successRate: 90, docsCompleted: 3 }
+                        ],
+                        weekly: [
+                            { name: 'Budi', successRate: 97, docsCompleted: 22 },
+                            { name: 'Siti', successRate: 94, docsCompleted: 20 },
+                            { name: 'Andi', successRate: 87, docsCompleted: 18 },
+                            { name: 'Dewi', successRate: 91, docsCompleted: 19 }
+                        ],
+                        monthly: [
+                            { name: 'Budi', successRate: 96, docsCompleted: 85 },
+                            { name: 'Siti', successRate: 93, docsCompleted: 80 },
+                            { name: 'Andi', successRate: 86, docsCompleted: 75 },
+                            { name: 'Dewi', successRate: 90, docsCompleted: 78 }
+                        ],
+                        annually: [
+                            { name: 'Budi', successRate: 95, docsCompleted: 980 },
+                            { name: 'Siti', successRate: 92, docsCompleted: 950 },
+                            { name: 'Andi', successRate: 85, docsCompleted: 890 },
+                            { name: 'Dewi', successRate: 89, docsCompleted: 920 }
+                        ]
+                    },
+                    charts: {
+                        performance: {
+                            labels: ['Budi', 'Siti', 'Andi', 'Dewi'],
+                            data: [50, 45, 40, 52],
+                        },
+                        successTrend: {
+                            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'],
+                            data: [88, 89, 90, 91, 92, 91, 93, 92, 94, 95]
+                        }
+                    }
+                },
+                // Data untuk Finance Dashboard
+                finance: {
+                    kpi: {
+                        cashBalance: 150000000,
+                        accountsPayable: 25000000,
+                        accountsReceivable: 45000000,
+                    },
+                    actions: [
+                        { id: 'FIN-001', action: 'Reimbursement Approval', status: 'Pending Approval', date: '2023-10-25', priority: 'High' },
+                        { id: 'FIN-002', action: 'Invoice Payment', status: 'Needs Payment', date: '2023-10-28', priority: 'High' },
+                        { id: 'FIN-003', action: 'Invoice Generation', status: 'Needs Billed', date: '2023-11-01', priority: 'Medium' },
+                        { id: 'FIN-004', action: 'Supplier Invoice', status: 'Needs Payment', date: '2023-11-05', priority: 'Medium' },
+                        { id: 'FIN-005', action: 'Tax Filing', status: 'Needs Filing', date: '2023-11-15', priority: 'High' },
+                        { id: 'FIN-006', action: 'Reimbursement Approval', status: 'Pending Approval', date: '2023-12-01', priority: 'Low' }
+                    ],
+                    tax: [
+                        { type: 'PPH Final', amount: 20000000, status: 'Paid', date: '2023-09-10' },
+                        { type: 'BPHTB', amount: 30000000, status: 'Outstanding', date: '2023-11-15' },
+                        { type: 'PPN', amount: 15000000, status: 'Paid', date: '2023-09-28' },
+                        { type: 'PPH Final', amount: 10000000, status: 'Outstanding', date: '2023-11-01' },
+                        { type: 'PPN', amount: 8000000, status: 'Outstanding', date: '2023-10-20' },
+                        { type: 'BPHTB', amount: 45000000, status: 'Paid', date: '2023-08-05' },
+                    ],
+                    charts: {
+                        cashFlow: {
+                            labels: ['Nov', 'Dec', 'Jan', 'Feb'],
+                            inflow: [40, 50, 45, 60],
+                            outflow: [30, 40, 35, 45],
+                        },
+                        profitMargin: {
+                            labels: ['AJB', 'SKMHT', 'APHT', 'Fidusia'],
+                            data: [35, 25, 20, 15] // dalam %
+                        }
+                    }
+                },
+                // Data untuk Management Dashboard
+                management: {
+                    kpi: {
+                        totalRevenue: 1200000000,
+                        revenueTrend: 5.2,
+                        totalDocuments: 452,
+                        docsTrend: 3.1,
+                        avgProfitMargin: 22,
+                        marginTrend: 1.5,
+                    },
+                    teamSummary: [
+                        { team: 'Team A', notaries: 4, docsQTD: 150, successRate: 92, avgTime: '4.1 Days' },
+                        { team: 'Team B', notaries: 3, docsQTD: 120, successRate: 95, avgTime: '3.8 Days' },
+                        { team: 'Team C', notaries: 5, docsQTD: 182, successRate: 90, avgTime: '4.5 Days' },
+                    ],
+                    charts: {
+                        trends: {
+                            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'],
+                            revenue: [80, 85, 90, 95, 100, 110, 105, 115, 120, 125],
+                            documents: [35, 38, 40, 42, 45, 48, 46, 49, 52, 55]
+                        },
+                        profitability: {
+                            labels: ['Akta Jual Beli', 'SKMHT', 'APHT', 'Fidusia'],
+                            data: [25, 22, 18, 15]
+                        }
+                    }
+                }
+            };
 
-            const supervisorActionData = [
-                { id: 'DOC-112', client: 'Joko Widodo', action: 'Verification Needed', status: 'Pending Verification', deadline: '2023-10-20' },
-                { id: 'DOC-120', client: 'Megawati Sukarno', action: 'Approval Required', status: 'Pending Approval', deadline: '2023-10-18' },
-                { id: 'DOC-125', client: 'Prabowo Subianto', action: 'Unassigned', status: 'Pending Assignment', deadline: '2023-10-25' },
-                { id: 'DOC-128', client: 'Anies Baswedan', action: 'Freeze Request', status: 'Pending Approval', deadline: '2023-10-22' }
-            ];
-
-            const financeActionData = [
-                { id: 'FIN-001', action: 'Reimbursement Approval', status: 'Pending Approval', date: '2023-10-25', priority: 'High' },
-                { id: 'FIN-002', action: 'Invoice Payment', status: 'Needs Payment', date: '2023-10-28', priority: 'High' },
-                { id: 'FIN-003', action: 'Invoice Generation', status: 'Needs Billed', date: '2023-11-01', priority: 'Medium' },
-                { id: 'FIN-004', action: 'Supplier Invoice', status: 'Needs Payment', date: '2023-11-05', priority: 'Medium' },
-                { id: 'FIN-005', action: 'Tax Filing', status: 'Needs Filing', date: '2023-11-15', priority: 'High' },
-                { id: 'FIN-006', action: 'Reimbursement Approval', status: 'Pending Approval', date: '2023-12-01', priority: 'Low' }
-            ];
+            // Urutan prioritas untuk sorting
             const priorityOrder = { 'High': 1, 'Medium': 2, 'Low': 3 };
+            let sortDirectionTable = 'asc';
 
-            const taxData = [
-                { type: 'PPH Final', amount: 20000000, status: 'Paid', date: '2023-09-10' },
-                { type: 'BPHTB', amount: 30000000, status: 'Outstanding', date: '2023-11-15' },
-                { type: 'PPN', amount: 15000000, status: 'Paid', date: '2023-09-28' },
-                { type: 'PPH Final', amount: 10000000, status: 'Outstanding', date: '2023-11-01' },
-                { type: 'PPN', amount: 8000000, status: 'Outstanding', date: '2023-10-20' },
-                { type: 'BPHTB', amount: 45000000, status: 'Paid', date: '2023-08-05' },
-            ];
-
-            const managementData = {
-                totalRevenue: 1200000000,
-                revenueTrend: 5.2,
-                totalDocuments: 452,
-                docsTrend: 3.1,
-                avgProfitMargin: 22,
-                marginTrend: 1.5,
-                teamSummary: [
-                    { team: 'Team A', notaries: 4, docsQTD: 150, successRate: 92, avgTime: '4.1 Days' },
-                    { team: 'Team B', notaries: 3, docsQTD: 120, successRate: 95, avgTime: '3.8 Days' },
-                    { team: 'Team C', notaries: 5, docsQTD: 182, successRate: 90, avgTime: '4.5 Days' },
-                ]
-            };
-
-            const teamPerformanceData = {
-                'daily': [
-                    { name: 'Budi', successRate: 98, docsCompleted: 5 },
-                    { name: 'Siti', successRate: 95, docsCompleted: 4 },
-                    { name: 'Andi', successRate: 88, docsCompleted: 3 },
-                    { name: 'Dewi', successRate: 90, docsCompleted: 3 }
-                ],
-                'weekly': [
-                    { name: 'Budi', successRate: 97, docsCompleted: 22 },
-                    { name: 'Siti', successRate: 94, docsCompleted: 20 },
-                    { name: 'Andi', successRate: 87, docsCompleted: 18 },
-                    { name: 'Dewi', successRate: 91, docsCompleted: 19 }
-                ],
-                'monthly': [
-                    { name: 'Budi', successRate: 96, docsCompleted: 85 },
-                    { name: 'Siti', successRate: 93, docsCompleted: 80 },
-                    { name: 'Andi', successRate: 86, docsCompleted: 75 },
-                    { name: 'Dewi', successRate: 90, docsCompleted: 78 }
-                ],
-                'annually': [
-                    { name: 'Budi', successRate: 95, docsCompleted: 980 },
-                    { name: 'Siti', successRate: 92, docsCompleted: 950 },
-                    { name: 'Andi', successRate: 85, docsCompleted: 890 },
-                    { name: 'Dewi', successRate: 89, docsCompleted: 920 }
-                ]
-            };
+            // --- Fungsi-Fungsi Pembantu ---
+            const formatRupiah = (number) => `Rp ${number.toLocaleString('id-ID')}`;
             
-            const teamSuccessRateTrendData = {
-                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'],
-                datasets: [{
-                    label: 'Team Success Rate',
-                    data: [88, 89, 90, 91, 92, 91, 93, 92, 94, 95],
-                    borderColor: '#a855f7',
-                    tension: 0.4,
-                    fill: false,
-                    pointBackgroundColor: '#a855f7'
-                }]
-            };
-
+            // Fungsi untuk update waktu dan durasi sesi
             const updateTimeAndSession = () => {
                 const now = new Date();
                 const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-                const currentTimeEl = document.getElementById('currentTime');
-                const currentTime2El = document.getElementById('currentTime2');
-                const currentTime3El = document.getElementById('currentTime3');
-                const currentTime4El = document.getElementById('currentTime4');
-                if (currentTimeEl) currentTimeEl.textContent = timeString;
-                if (currentTime2El) currentTime2El.textContent = timeString;
-                if (currentTime3El) currentTime3El.textContent = timeString;
-                if (currentTime4El) currentTime4El.textContent = timeString;
-
                 const sessionDurationMs = now.getTime() - sessionStartTime.getTime();
                 const sessionHours = Math.floor(sessionDurationMs / (1000 * 60 * 60));
                 const sessionMinutes = Math.floor((sessionDurationMs % (1000 * 60 * 60)) / (1000 * 60));
                 const sessionSeconds = Math.floor((sessionDurationMs % (1000 * 60)) / 1000);
-                const sessionTimeEl = document.getElementById('sessionTime');
-                const sessionTime2El = document.getElementById('sessionTime2');
-                const sessionTime3El = document.getElementById('sessionTime3');
-                const sessionTime4El = document.getElementById('sessionTime4');
-                if (sessionTimeEl) sessionTimeEl.textContent = `Session: ${sessionHours}h ${sessionMinutes}m ${sessionSeconds}s`;
-                if (sessionTime2El) sessionTime2El.textContent = `Session: ${sessionHours}h ${sessionMinutes}m ${sessionSeconds}s`;
-                if (sessionTime3El) sessionTime3El.textContent = `Session: ${sessionHours}h ${sessionMinutes}m ${sessionSeconds}s`;
-                if (sessionTime4El) sessionTime4El.textContent = `Session: ${sessionHours}h ${sessionMinutes}m ${sessionSeconds}s`;
+                const sessionTimeText = `Sesi: ${sessionHours}j ${sessionMinutes}m ${sessionSeconds}d`;
+                
+                // Update elemen di semua dashboard
+                const timeElements = document.querySelectorAll('[id^="currentTime"]');
+                const sessionElements = document.querySelectorAll('[id^="sessionTime"]');
+                timeElements.forEach(el => el.textContent = timeString);
+                sessionElements.forEach(el => el.textContent = sessionTimeText);
             };
 
-            const renderAssignmentsTable = (data) => {
-                const tableBody = document.getElementById('assignmentsTableBody');
+            // Fungsi untuk render tabel yang reusable
+            const renderTable = (tableId, tableData, columns, rowRenderer) => {
+                const tableBody = document.getElementById(tableId);
                 if (!tableBody) return;
                 tableBody.innerHTML = '';
-                data.forEach(assignment => {
-                    let statusColor = '';
-                    if (assignment.status === 'Pending Review') {
-                        statusColor = 'bg-yellow-100 text-yellow-800';
-                    } else if (assignment.status === 'Awaiting Signature') {
-                        statusColor = 'bg-orange-100 text-orange-800';
-                    } else if (assignment.status === 'Outstanding') {
-                        statusColor = 'bg-red-100 text-red-800';
-                    } else if (assignment.status === 'Freezed') {
-                        statusColor = 'bg-gray-100 text-gray-800';
-                    } else {
-                         statusColor = 'bg-blue-100 text-blue-800';
-                    }
-                    
+                tableData.forEach(item => {
                     const row = document.createElement('tr');
                     row.className = 'hover:bg-gray-50';
-                    row.innerHTML = `
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${assignment.id}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${assignment.client}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${assignment.type}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm">
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColor}">
-                                ${assignment.status}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${assignment.deadline}</td>
-                    `;
+                    row.innerHTML = rowRenderer(item);
                     tableBody.appendChild(row);
                 });
             };
 
-            const filterAndSortAssignments = () => {
-                const clientFilter = document.getElementById('clientFilter');
-                const typeFilter = document.getElementById('typeFilter');
-                const statusFilter = document.getElementById('statusFilter');
-
-                if (!clientFilter || !typeFilter || !statusFilter) return;
-
-                const clientFilterValue = clientFilter.value.toLowerCase();
-                const typeFilterValue = typeFilter.value.toLowerCase();
-                const statusFilterValue = statusFilter.value.toLowerCase();
-
-                let filteredData = assignmentsData.filter(assignment => {
-                    const clientMatch = assignment.client.toLowerCase().includes(clientFilterValue);
-                    const typeMatch = assignment.type.toLowerCase().includes(typeFilterValue);
-                    const statusMatch = statusFilterValue === '' || assignment.status.toLowerCase() === statusFilterValue;
-                    return clientMatch && typeMatch && statusMatch;
+            // --- Logika Utama Dashboard ---
+            const renderDashboard = (role) => {
+                // Sembunyikan semua dashboard dan tampilkan yang sesuai
+                ['operationalDashboard', 'supervisorDashboard', 'financeDashboard', 'managementDashboard'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.classList.add('hidden');
                 });
+                const currentDashboard = document.getElementById(`${role}Dashboard`);
+                if (currentDashboard) currentDashboard.classList.remove('hidden');
 
-                // Sort the filtered data by deadline
-                filteredData.sort((a, b) => {
-                    const dateA = new Date(a.deadline);
-                    const dateB = new Date(b.deadline);
-                    return sortDirection === 'asc' ? dateA - dateB : dateB - dateA;
-                });
+                // Update judul dashboard
+                const dashboardTitleEl = document.getElementById('dashboardTitle');
+                const roleTitles = { 'operational': 'Dashboard Operasional', 'supervisor': 'Dashboard Supervisor', 'finance': 'Dashboard Keuangan', 'management': 'Dashboard Manajemen' };
+                if (dashboardTitleEl) dashboardTitleEl.textContent = roleTitles[role];
 
-                renderAssignmentsTable(filteredData);
-            };
+                // Update item menu yang aktif
+                document.querySelectorAll('.role-menu-item').forEach(item => item.classList.toggle('active', item.dataset.role === role));
 
-            const renderSupervisorActionTable = (data) => {
-                const tableBody = document.getElementById('supervisorAssignmentsTableBody');
-                if (!tableBody) return;
-                tableBody.innerHTML = '';
-                data.forEach(item => {
-                    const row = document.createElement('tr');
-                    row.className = 'hover:bg-gray-50';
-                    row.innerHTML = `
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-500 hover:underline">
-                            <a href="#">${item.id}</a>
-                        </td>
+                // Hancurkan chart yang ada sebelum membuat yang baru
+                for (const chartName in charts) {
+                    if (charts[chartName]) {
+                        charts[chartName].destroy();
+                        charts[chartName] = null;
+                    }
+                }
+
+                // Render konten spesifik sesuai role
+                if (role === 'operational') {
+                    const opData = data.operational;
+                    const kpi = opData.kpi;
+                    const totalDocs = kpi.finishedDocuments + kpi.inProgressDocuments + kpi.outstandingDocuments + kpi.freezedDocuments;
+                    
+                    document.getElementById('successRateValue').textContent = `${kpi.successRate}%`;
+                    document.getElementById('successGauge').style.setProperty('--fill-percentage', `${kpi.successRate}%`);
+                    document.getElementById('finishedDocs').textContent = kpi.finishedDocuments;
+                    document.getElementById('outstandingDocs').textContent = kpi.outstandingDocuments;
+                    document.getElementById('inProgressDocs').textContent = kpi.inProgressDocuments;
+                    document.getElementById('freezedDocs').textContent = kpi.freezedDocuments;
+                    document.querySelector('#operationalDashboard .bg-blue-400').style.width = `${(kpi.finishedDocuments / totalDocs) * 100}%`;
+
+                    // Render chart
+                    const funnelCtx = document.getElementById('documentFunnelChart').getContext('2d');
+                    charts.funnel = new Chart(funnelCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: opData.charts.funnel.labels,
+                            datasets: [{
+                                label: 'Document Flow',
+                                data: opData.charts.funnel.data,
+                                backgroundColor: opData.charts.funnel.colors,
+                                borderWidth: 0,
+                                borderSkipped: false
+                            }]
+                        },
+                        options: {
+                            indexAxis: 'y', responsive: true, scales: { x: { display: false, stacked: true }, y: { stacked: true } },
+                            plugins: { legend: { display: false } }
+                        }
+                    });
+
+                    const performanceCtx = document.getElementById('performanceChart').getContext('2d');
+                    charts.performance = new Chart(performanceCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: opData.charts.performance.labels,
+                            datasets: [{ label: 'Docs Completed', data: opData.charts.performance.docsCompleted, backgroundColor: '#818cf8', borderRadius: 4 },
+                                { label: 'Target', data: opData.charts.performance.target, type: 'line', borderColor: '#a855f7', borderWidth: 2, pointRadius: 4, pointBackgroundColor: '#a855f7', fill: false }]
+                        },
+                        options: { responsive: true, scales: { y: { beginAtZero: true }, x: { grid: { display: false } } }, plugins: { legend: { position: 'top' } } }
+                    });
+
+                    filterAndSortAssignments();
+                } else if (role === 'supervisor') {
+                    const supData = data.supervisor;
+                    const kpi = supData.kpi;
+
+                    document.getElementById('teamTargetProgress').textContent = `${Math.round((kpi.docsProcessed / kpi.target) * 100)}%`;
+                    document.querySelector('#supervisorDashboard .card:nth-child(1) p.text-xs').textContent = `${kpi.docsProcessed} dari ${kpi.target} Dokumen selesai`;
+                    document.querySelector('#supervisorDashboard .card:nth-child(1) .bg-yellow-400').style.width = `${Math.round((kpi.docsProcessed / kpi.target) * 100)}%`;
+                    document.getElementById('teamSuccessRate').textContent = `${kpi.successRate}%`;
+                    document.getElementById('avgProcessingTime').textContent = kpi.avgProcessingTime;
+                    
+                    const avgTimeTrendEl = document.getElementById('avgTimeTrend');
+                    const trendIcon = avgTimeTrendEl.querySelector('svg');
+                    if (kpi.avgTimeTrend < 0) {
+                        avgTimeTrendEl.className = 'flex items-center text-green-500';
+                        if (trendIcon) trendIcon.style.transform = 'rotate(0deg)';
+                    } else {
+                        avgTimeTrendEl.className = 'flex items-center text-red-500';
+                        if (trendIcon) trendIcon.style.transform = 'rotate(180deg)';
+                    }
+                    avgTimeTrendEl.childNodes[1].textContent = `${Math.abs(kpi.avgTimeTrend)}% vs. bulan lalu`;
+
+                    renderTable('supervisorAssignmentsTableBody', supData.actions, null, (item) => `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-500 hover:underline"><a href="#">${item.id}</a></td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.client}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.action}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.status}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.deadline}</td>
-                    `;
-                    tableBody.appendChild(row);
-                });
-            };
-            
-            const renderFinanceActionTable = (data) => {
-                const tableBody = document.getElementById('financeActionsTableBody');
-                if (!tableBody) return;
-                tableBody.innerHTML = '';
-                data.forEach(item => {
-                    const row = document.createElement('tr');
-                    row.className = 'hover:bg-gray-50';
-                    let statusColor = '';
-                    let priorityColor = '';
-                    if (item.status === 'Pending Approval' || item.status === 'Needs Billed' || item.status === 'Needs Filing') {
-                        statusColor = 'bg-yellow-100 text-yellow-800';
-                    } else if (item.status === 'Needs Payment') {
-                        statusColor = 'bg-red-100 text-red-800';
-                    } else {
-                        statusColor = 'bg-blue-100 text-blue-800';
-                    }
+                    `);
 
-                    if (item.priority === 'High') {
-                        priorityColor = 'bg-red-500 text-white';
-                    } else if (item.priority === 'Medium') {
-                        priorityColor = 'bg-yellow-400 text-white';
-                    } else {
-                        priorityColor = 'bg-gray-400 text-white';
-                    }
+                    // Render chart
+                    const teamPerfCtx = document.getElementById('teamPerformanceChart').getContext('2d');
+                    charts.teamPerformance = new Chart(teamPerfCtx, {
+                        type: 'bar',
+                        data: { labels: supData.charts.performance.labels, datasets: [{ label: 'Docs Processed', data: supData.charts.performance.data, backgroundColor: '#818cf8', borderRadius: 4 }] },
+                        options: { responsive: true, scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } }
+                    });
+                    
+                    const teamSuccessTrendCtx = document.getElementById('teamSuccessRateTrendChart').getContext('2d');
+                    charts.teamSuccessRateTrend = new Chart(teamSuccessTrendCtx, {
+                        type: 'line',
+                        data: { labels: supData.charts.successTrend.labels, datasets: [{ label: 'Team Success Rate', data: supData.charts.successTrend.data, borderColor: '#a855f7', tension: 0.4, fill: false, pointBackgroundColor: '#a855f7' }] },
+                        options: { responsive: true, scales: { y: { beginAtZero: false, min: 80, max: 100 } }, plugins: { legend: { position: 'top' } } }
+                    });
 
-                    row.innerHTML = `
-                        <td class="px-6 py-4 whitespace-nowrap text-sm">
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${priorityColor}">
-                                ${item.priority}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-500 hover:underline">
-                            <a href="#">${item.id}</a>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.action}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm">
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColor}">
-                                ${item.status}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.date}</td>
-                    `;
-                    tableBody.appendChild(row);
-                });
-            };
+                    renderLeaderboard('weekly');
+                } else if (role === 'finance') {
+                    const finData = data.finance;
+                    const kpi = finData.kpi;
 
-             const renderTaxTable = (data) => {
-                const tableBody = document.getElementById('taxTableBody');
-                if (!tableBody) return;
-                tableBody.innerHTML = '';
-                data.forEach(item => {
-                    const row = document.createElement('tr');
-                    row.className = 'hover:bg-gray-50';
-                    let statusColor = item.status === 'Paid' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
-                    row.innerHTML = `
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.type}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Rp ${item.amount.toLocaleString('id-ID')}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm">
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColor}">
-                                ${item.status}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.date}</td>
-                    `;
-                    tableBody.appendChild(row);
-                });
-            };
+                    document.getElementById('cashBalance').textContent = formatRupiah(kpi.cashBalance);
+                    document.getElementById('accountsPayable').textContent = formatRupiah(kpi.accountsPayable);
+                    document.getElementById('accountsReceivable').textContent = formatRupiah(kpi.accountsReceivable);
+                    
+                    filterAndSortFinanceActions();
+                    filterAndSortTaxData();
 
-            const renderTeamSummaryTable = (data) => {
-                const tableBody = document.getElementById('teamSummaryTableBody');
-                if (!tableBody) return;
-                tableBody.innerHTML = '';
-                data.forEach(item => {
-                    const row = document.createElement('tr');
-                    row.className = 'hover:bg-gray-50';
-                    row.innerHTML = `
+                    // Render chart
+                    const cashFlowCtx = document.getElementById('projectedCashFlowChart').getContext('2d');
+                    charts.projectedCashFlow = new Chart(cashFlowCtx, {
+                        type: 'line',
+                        data: {
+                            labels: finData.charts.cashFlow.labels,
+                            datasets: [{
+                                label: 'Cash Inflow (Juta Rp)',
+                                data: finData.charts.cashFlow.inflow,
+                                borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.2)', fill: true, tension: 0.4
+                            }, {
+                                label: 'Cash Outflow (Juta Rp)',
+                                data: finData.charts.cashFlow.outflow,
+                                borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.2)', fill: true, tension: 0.4
+                            }]
+                        },
+                        options: { responsive: true }
+                    });
+                    
+                    const profitMarginCtx = document.getElementById('profitMarginChart').getContext('2d');
+                    charts.profitMargin = new Chart(profitMarginCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: finData.charts.profitMargin.labels,
+                            datasets: [{ label: 'Net Profit Margin (%)', data: finData.charts.profitMargin.data, backgroundColor: ['#6366f1', '#8b5cf6', '#a855f7', '#d946ef'], borderRadius: 4 }]
+                        },
+                        options: {
+                            responsive: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'Net Profit Margin (%)' } } },
+                            plugins: { legend: { display: false } }
+                        }
+                    });
+
+                } else if (role === 'management') {
+                    const mgmtData = data.management;
+                    const kpi = mgmtData.kpi;
+
+                    document.getElementById('totalRevenue').textContent = formatRupiah(kpi.totalRevenue).replace(/,00/, '');
+                    document.getElementById('revenueTrend').textContent = `${kpi.revenueTrend}% vs. bulan lalu`;
+                    document.getElementById('totalDocuments').textContent = kpi.totalDocuments;
+                    document.getElementById('docsTrend').textContent = `${kpi.docsTrend}% vs. bulan lalu`;
+                    document.getElementById('avgProfitMargin').textContent = `${kpi.avgProfitMargin}%`;
+                    document.getElementById('marginTrend').textContent = `${kpi.marginTrend}% vs. bulan lalu`;
+
+                    renderTable('teamSummaryTableBody', mgmtData.teamSummary, null, (item) => `
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.team}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.notaries}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.docsQTD}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.successRate}%</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.avgTime}</td>
+                    `);
+                    
+                    // Render chart
+                    const trendsCtx = document.getElementById('managementTrendsChart').getContext('2d');
+                    charts.trends = new Chart(trendsCtx, {
+                        type: 'line',
+                        data: {
+                            labels: mgmtData.charts.trends.labels,
+                            datasets: [{
+                                label: 'Total Revenue (Juta Rp)',
+                                data: mgmtData.charts.trends.revenue,
+                                borderColor: '#10b981', tension: 0.4, fill: false, yAxisID: 'y1'
+                            }, {
+                                label: 'Documents Processed',
+                                data: mgmtData.charts.trends.documents,
+                                borderColor: '#3b82f6', tension: 0.4, fill: false, yAxisID: 'y2'
+                            }]
+                        },
+                        options: { responsive: true, interaction: { mode: 'index', intersect: false }, scales: { y1: { type: 'linear', display: true, position: 'left' }, y2: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false } } } }
+                    });
+                    
+                    const profitCtx = document.getElementById('managementProfitChart').getContext('2d');
+                    charts.profit = new Chart(profitCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: mgmtData.charts.profitability.labels,
+                            datasets: [{ label: 'Net Profit Margin (%)', data: mgmtData.charts.profitability.data, backgroundColor: ['#6366f1', '#8b5cf6', '#a855f7', '#d946ef'], borderRadius: 4 }]
+                        },
+                        options: { responsive: true, scales: { y: { beginAtZero: true, title: { display: true, text: 'Net Profit Margin (%)' }, max: 30 } }, plugins: { legend: { display: false } } }
+                    });
+                }
+            };
+            
+            // --- Logika Filtering dan Sorting ---
+            const filterAndSortAssignments = () => {
+                const filters = {
+                    client: document.getElementById('clientFilter').value.toLowerCase(),
+                    type: document.getElementById('typeFilter').value.toLowerCase(),
+                    status: document.getElementById('statusFilter').value.toLowerCase()
+                };
+
+                let filteredData = data.operational.assignments.filter(item => 
+                    item.client.toLowerCase().includes(filters.client) &&
+                    item.type.toLowerCase().includes(filters.type) &&
+                    (filters.status === '' || item.status.toLowerCase() === filters.status)
+                );
+                
+                filteredData.sort((a, b) => {
+                    const dateA = new Date(a.deadline);
+                    const dateB = new Date(b.deadline);
+                    return sortDirectionTable === 'asc' ? dateA - dateB : dateB - dateA;
+                });
+
+                renderTable('assignmentsTableBody', filteredData, null, (item) => {
+                    const statusColor = item.status === 'Pending Review' ? 'bg-yellow-100 text-yellow-800' :
+                                        item.status === 'Awaiting Signature' ? 'bg-orange-100 text-orange-800' :
+                                        item.status === 'Outstanding' ? 'bg-red-100 text-red-800' :
+                                        item.status === 'Freezed' ? 'bg-gray-100 text-gray-800' :
+                                        'bg-blue-100 text-blue-800';
+                    return `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.id}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.client}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.type}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColor}">${item.status}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.deadline}</td>
                     `;
-                    tableBody.appendChild(row);
                 });
             };
-
 
             const filterAndSortFinanceActions = () => {
                 const priorityFilter = document.getElementById('priorityFilter');
                 if (!priorityFilter) return;
-
-                const priorityFilterValue = priorityFilter.value;
-                const filteredData = financeActionData.filter(action => {
-                    return priorityFilterValue === '' || action.priority === priorityFilterValue;
-                });
+                const filteredData = data.finance.actions.filter(action => priorityFilter.value === '' || action.priority === priorityFilter.value);
 
                 filteredData.sort((a, b) => {
                     const aDate = new Date(a.date);
                     const bDate = new Date(b.date);
                     const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
-
-                    if (sortDirection === 'asc') {
-                        return priorityDiff !== 0 ? priorityDiff : aDate - bDate;
-                    } else {
-                        return priorityDiff !== 0 ? priorityDiff : bDate - aDate;
-                    }
+                    return sortDirectionTable === 'asc' ? (priorityDiff !== 0 ? priorityDiff : aDate - bDate) : (priorityDiff !== 0 ? priorityDiff : bDate - aDate);
                 });
-                renderFinanceActionTable(filteredData);
+
+                renderTable('financeActionsTableBody', filteredData, null, (item) => {
+                    const statusColor = item.status === 'Needs Payment' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800';
+                    const priorityColor = item.priority === 'High' ? 'bg-red-500 text-white' : item.priority === 'Medium' ? 'bg-yellow-400 text-white' : 'bg-gray-400 text-white';
+                    return `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm"><span class="px-2 inline-flex text-xs font-semibold rounded-full ${priorityColor}">${item.priority}</span></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-500 hover:underline"><a href="#">${item.id}</a></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.action}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm"><span class="px-2 inline-flex text-xs font-semibold rounded-full ${statusColor}">${item.status}</span></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.date}</td>
+                    `;
+                });
             };
 
             const filterAndSortTaxData = () => {
@@ -861,7 +1013,7 @@
                 const taxDateStartValue = taxDateStart.value ? new Date(taxDateStart.value) : null;
                 const taxDateEndValue = taxDateEnd.value ? new Date(taxDateEnd.value) : null;
 
-                let filteredData = taxData.filter(item => {
+                let filteredData = data.finance.tax.filter(item => {
                     const statusMatch = taxStatusFilterValue === '' || item.status === taxStatusFilterValue;
                     const itemDate = new Date(item.date);
                     const dateMatch = (!taxDateStartValue || itemDate >= taxDateStartValue) && (!taxDateEndValue || itemDate <= taxDateEndValue);
@@ -871,681 +1023,101 @@
                 filteredData.sort((a, b) => {
                     const dateA = new Date(a.date);
                     const dateB = new Date(b.date);
-                    return sortDirection === 'asc' ? dateA - dateB : dateB - dateA;
+                    return sortDirectionTable === 'asc' ? dateA - dateB : dateB - dateA;
                 });
 
-                renderTaxTable(filteredData);
+                renderTable('taxTableBody', filteredData, null, (item) => {
+                    const statusColor = item.status === 'Paid' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+                    return `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.type}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatRupiah(item.amount)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm"><span class="px-2 inline-flex text-xs font-semibold rounded-full ${statusColor}">${item.status}</span></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.date}</td>
+                    `;
+                });
             };
-
 
             const renderLeaderboard = (timePeriod) => {
-                const tableBody = document.getElementById('leaderboardTableBody');
-                if (!tableBody) return;
-                const data = teamPerformanceData[timePeriod];
-                data.sort((a, b) => b.docsCompleted - a.docsCompleted);
-                tableBody.innerHTML = '';
-                data.forEach((member, index) => {
-                    const rank = index + 1;
-                    const row = document.createElement('tr');
-                    row.className = 'hover:bg-gray-50';
-                    row.innerHTML = `
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${rank}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${member.name}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${member.successRate}%</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${member.docsCompleted}</td>
-                    `;
-                    tableBody.appendChild(row);
-                });
+                const leaderboardData = data.supervisor.leaderboard[timePeriod].sort((a, b) => b.docsCompleted - a.docsCompleted);
+                renderTable('leaderboardTableBody', leaderboardData, null, (member, index) => `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${index + 1}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${member.name}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${member.successRate}%</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${member.docsCompleted}</td>
+                `);
             };
 
-            const renderDashboard = (role) => {
-                const dashboards = ['operationalDashboard', 'supervisorDashboard', 'financeDashboard', 'managementDashboard'];
-                dashboards.forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) el.classList.add('hidden');
-                });
-                const currentDashboard = document.getElementById(`${role}Dashboard`);
-                if (currentDashboard) currentDashboard.classList.remove('hidden');
-
-                const dashboardTitle = document.getElementById('dashboardTitle');
-                const roleTitles = {
-                    'operational': 'Operational Dashboard',
-                    'supervisor': 'Supervisor Dashboard',
-                    'finance': 'Finance Dashboard',
-                    'management': 'Management Dashboard'
-                };
-                if (dashboardTitle) dashboardTitle.textContent = roleTitles[role];
-
-                // Update the active menu item
-                const menuItems = document.querySelectorAll('.role-menu-item');
-                menuItems.forEach(item => {
-                    if (item.dataset.role === role) {
-                        item.classList.add('active');
-                    } else {
-                        item.classList.remove('active');
-                    }
-                });
-
-                // Destroy existing chart instances before rendering new ones
-                for (const chartName in charts) {
-                  if (charts[chartName]) {
-                    charts[chartName].destroy();
-                    charts[chartName] = null;
-                  }
-                }
-
-                if (role === 'operational') {
-                    // Operational dummy data
-                    const kpiData = {
-                        successRate: 85,
-                        finishedDocuments: 42,
-                        inProgressDocuments: 5,
-                        outstandingDocuments: 3,
-                        freezedDocuments: 1
-                    };
-                    kpiData.totalDocuments = kpiData.finishedDocuments + kpiData.inProgressDocuments + kpiData.outstandingDocuments + kpiData.freezedDocuments;
-
-                    // Check if elements exist before updating
-                    const successRateValueEl = document.getElementById('successRateValue');
-                    const finishedDocsEl = document.getElementById('finishedDocs');
-                    const outstandingDocsEl = document.getElementById('outstandingDocs');
-                    const inProgressDocsEl = document.getElementById('inProgressDocs');
-                    const freezedDocsEl = document.getElementById('freezedDocs');
-                    const progressBarEl = document.querySelector('#operationalDashboard .bg-blue-400');
-                    const gaugeFillEl = document.getElementById('successGauge');
-                    
-                    if (successRateValueEl) successRateValueEl.textContent = `${kpiData.successRate}%`;
-                    if (finishedDocsEl) finishedDocsEl.textContent = kpiData.finishedDocuments;
-                    if (outstandingDocsEl) outstandingDocsEl.textContent = kpiData.outstandingDocuments;
-                    if (inProgressDocsEl) inProgressDocsEl.textContent = kpiData.inProgressDocuments;
-                    if (freezedDocsEl) freezedDocsEl.textContent = kpiData.freezedDocuments;
-
-                    if (progressBarEl) {
-                        const progressPercentage = (kpiData.finishedDocuments / kpiData.totalDocuments) * 100;
-                        progressBarEl.style.width = `${progressPercentage}%`;
-                    }
-                    if (gaugeFillEl) gaugeFillEl.style.setProperty('--fill-percentage', `${kpiData.successRate}%`);
-
-                    // Dummy data for charts
-                    const documentFunnelData = {
-                        labels: ['Drafted', 'Submitted to BPN', 'BPN Approved', 'Signed', 'Freezed'],
-                        datasets: [{
-                            label: 'Document Flow',
-                            data: [100, 95, 85, 80, 5],
-                            backgroundColor: ['#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#cbd5e1'],
-                            borderWidth: 0,
-                            borderSkipped: false
-                        }]
-                    };
-
-                    const performanceData = {
-                        labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-                        datasets: [{
-                            label: 'Documents Completed',
-                            data: [10, 12, 11, 9],
-                            backgroundColor: '#818cf8',
-                            borderRadius: 4,
-                        },
-                        {
-                            label: 'Target',
-                            data: [11, 11, 11, 11],
-                            type: 'line',
-                            borderColor: '#a855f7',
-                            borderWidth: 2,
-                            pointRadius: 4,
-                            pointBackgroundColor: '#a855f7',
-                            pointBorderColor: '#fff',
-                            pointBorderWidth: 2,
-                            fill: false,
-                        }]
-                    };
+            // --- Event Listeners ---
+            document.getElementById('profileIcon').addEventListener('click', (event) => {
+                document.getElementById('roleMenu').classList.toggle('hidden');
+                event.stopPropagation();
+            });
             
-                    // Chart configuration
-                    const funnelCanvas = document.getElementById('documentFunnelChart');
-                    if (funnelCanvas) {
-                      const funnelCtx = funnelCanvas.getContext('2d');
-                      charts.funnel = new Chart(funnelCtx, {
-                          type: 'bar',
-                          data: documentFunnelData,
-                          options: {
-                              indexAxis: 'y',
-                              responsive: true,
-                              scales: {
-                                  x: {
-                                      display: false,
-                                      stacked: true,
-                                  },
-                                  y: {
-                                      stacked: true,
-                                  }
-                              },
-                              plugins: {
-                                  legend: {
-                                      display: false
-                                  },
-                                  tooltip: {
-                                      callbacks: {
-                                          label: function(context) {
-                                              let label = context.dataset.label || '';
-                                              if (label) {
-                                                  label += ': ';
-                                              }
-                                              if (context.parsed.x !== null) {
-                                                  label += context.parsed.x + '%';
-                                              }
-                                              return label;
-                                          }
-                                      }
-                                  }
-                              },
-                              layout: {
-                                  padding: 20
-                              }
-                          }
-                      });
-                    }
+            document.getElementById('roleMenu').addEventListener('click', (event) => {
+                const role = event.target.closest('.role-menu-item')?.dataset.role;
+                if (role) {
+                    renderDashboard(role);
+                    document.getElementById('roleMenu').classList.add('hidden');
+                }
+            });
 
-                    const performanceCanvas = document.getElementById('performanceChart');
-                    if (performanceCanvas) {
-                      const performanceCtx = performanceCanvas.getContext('2d');
-                      charts.performance = new Chart(performanceCtx, {
-                          type: 'bar',
-                          data: performanceData,
-                          options: {
-                              responsive: true,
-                              scales: {
-                                  y: {
-                                      beginAtZero: true,
-                                      grid: {
-                                          color: 'rgba(0, 0, 0, 0.05)',
-                                      }
-                                  },
-                                  x: {
-                                      grid: {
-                                          display: false
-                                      }
-                                  }
-                              },
-                              plugins: {
-                                  legend: {
-                                      position: 'top',
-                                  }
-                              }
-                          }
-                      });
-                    }
-                    filterAndSortAssignments();
-                } else if (role === 'supervisor') {
-                    // Supervisor dummy data
-                    const kpiData = {
-                        docsProcessed: 150,
-                        target: 200,
-                        successRate: 92,
-                        avgProcessingTime: '4.1 Days',
-                        avgTimeTrend: -2.3 // Negative for improvement
-                    };
+            document.body.addEventListener('click', () => document.getElementById('roleMenu').classList.add('hidden'));
 
-                    // Update KPI card values
-                    const teamTargetProgressEl = document.getElementById('teamTargetProgress');
-                    const teamTargetTextEl = document.querySelector('#supervisorDashboard .card:nth-child(1) p.text-xs');
-                    const teamTargetProgressBarEl = document.querySelector('#supervisorDashboard .card:nth-child(1) .bg-yellow-400');
-                    const teamSuccessRateEl = document.getElementById('teamSuccessRate');
-                    const avgProcessingTimeEl = document.getElementById('avgProcessingTime');
-                    const avgTimeTrendEl = document.getElementById('avgTimeTrend');
-
-                    if (teamTargetProgressEl) teamTargetProgressEl.textContent = `${Math.round((kpiData.docsProcessed / kpiData.target) * 100)}%`;
-                    if (teamTargetTextEl) teamTargetTextEl.textContent = `${kpiData.docsProcessed} of ${kpiData.target} Docs completed`;
-                    if (teamTargetProgressBarEl) teamTargetProgressBarEl.style.width = `${Math.round((kpiData.docsProcessed / kpiData.target) * 100)}%`;
-                    if (teamSuccessRateEl) teamSuccessRateEl.textContent = `${kpiData.successRate}%`;
-                    if (avgProcessingTimeEl) avgProcessingTimeEl.textContent = kpiData.avgProcessingTime;
-                    
-                    if (avgTimeTrendEl) {
-                        const trendIcon = avgTimeTrendEl.querySelector('svg');
-                        if (kpiData.avgTimeTrend < 0) { // Time improvement is a positive trend
-                            avgTimeTrendEl.classList.remove('text-red-500');
-                            avgTimeTrendEl.classList.add('text-green-500');
-                            if (trendIcon) trendIcon.style.transform = 'rotate(0deg)';
-                        } else {
-                            avgTimeTrendEl.classList.remove('text-green-500');
-                            avgTimeTrendEl.classList.add('text-red-500');
-                            if (trendIcon) trendIcon.style.transform = 'rotate(180deg)';
+            // Listener untuk sorting tabel
+            const addSortListener = (headerId, tableFunction, sortIconId = null) => {
+                const header = document.getElementById(headerId);
+                if (header) {
+                    header.addEventListener('click', () => {
+                        sortDirectionTable = sortDirectionTable === 'asc' ? 'desc' : 'asc';
+                        const sortIcon = document.getElementById(sortIconId);
+                        if (sortIcon) {
+                            sortIcon.innerHTML = sortDirectionTable === 'asc' ? 
+                                `<svg class="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path></svg>` : 
+                                `<svg class="w-3 h-3 text-gray-500 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path></svg>`;
                         }
-                        avgTimeTrendEl.textContent = `${Math.abs(kpiData.avgTimeTrend)}% vs. last month`;
-                    }
-
-                    // Render action table
-                    renderSupervisorActionTable(supervisorActionData);
-
-                    // Chart data
-                    const teamPerformanceChartData = {
-                        labels: ['Budi', 'Siti', 'Andi', 'Dewi'],
-                        datasets: [{
-                            label: 'Documents Processed',
-                            data: [50, 45, 40, 52],
-                            backgroundColor: '#818cf8',
-                            borderRadius: 4,
-                        }]
-                    };
-
-                    const teamPerformanceCanvas = document.getElementById('teamPerformanceChart');
-                    if (teamPerformanceCanvas) {
-                      const teamPerformanceCtx = teamPerformanceCanvas.getContext('2d');
-                      charts.teamPerformance = new Chart(teamPerformanceCtx, {
-                          type: 'bar',
-                          data: teamPerformanceChartData,
-                          options: {
-                              responsive: true,
-                              scales: {
-                                  y: { beginAtZero: true },
-                              },
-                              plugins: {
-                                  legend: { display: false }
-                              }
-                          }
-                      });
-                    }
-
-                    const teamSuccessRateTrendCanvas = document.getElementById('teamSuccessRateTrendChart');
-                    if (teamSuccessRateTrendCanvas) {
-                      const teamSuccessRateTrendCtx = teamSuccessRateTrendCanvas.getContext('2d');
-                      charts.teamSuccessRateTrend = new Chart(teamSuccessRateTrendCtx, {
-                          type: 'line',
-                          data: teamSuccessRateTrendData,
-                          options: {
-                              responsive: true,
-                              scales: {
-                                  y: {
-                                      beginAtZero: false,
-                                      min: 80,
-                                      max: 100
-                                  }
-                              },
-                              plugins: {
-                                  legend: { position: 'top' }
-                              }
-                          }
-                      });
-                    }
-                    
-                    renderLeaderboard('weekly'); // Default leaderboard view
-                } else if (role === 'finance') {
-                    // Finance dummy data
-                    const financialData = {
-                        cashBalance: 150000000,
-                        accountsPayable: 25000000,
-                        accountsReceivable: 45000000,
-                        projectedCashFlow: {
-                            labels: ['Nov', 'Dec', 'Jan', 'Feb'],
-                            datasets: [{
-                                label: 'Cash Inflow (in Millions)',
-                                data: [40, 50, 45, 60],
-                                borderColor: '#10b981',
-                                backgroundColor: 'rgba(16, 185, 129, 0.2)',
-                                fill: true,
-                                tension: 0.4,
-                            },
-                            {
-                                label: 'Cash Outflow (in Millions)',
-                                data: [30, 40, 35, 45],
-                                borderColor: '#ef4444',
-                                backgroundColor: 'rgba(239, 68, 68, 0.2)',
-                                fill: true,
-                                tension: 0.4,
-                            }]
-                        },
-                        profitMargin: {
-                            labels: ['AJB', 'SKMHT', 'APHT', 'Fidusia'],
-                            data: [35, 25, 20, 15] // in %
-                        }
-                    };
-                    
-                    const taxData = [
-                        { type: 'PPH Final', amount: 20000000, status: 'Paid', date: '2023-09-10' },
-                        { type: 'BPHTB', amount: 30000000, status: 'Outstanding', date: '2023-11-15' },
-                        { type: 'PPN', amount: 15000000, status: 'Paid', date: '2023-09-28' },
-                        { type: 'PPH Final', amount: 10000000, status: 'Outstanding', date: '2023-11-01' },
-                        { type: 'PPN', amount: 8000000, status: 'Outstanding', date: '2023-10-20' },
-                        { type: 'BPHTB', amount: 45000000, status: 'Paid', date: '2023-08-05' },
-                    ];
-
-                    // Update KPI cards
-                    const cashBalanceEl = document.getElementById('cashBalance');
-                    const accountsPayableEl = document.getElementById('accountsPayable');
-                    const accountsReceivableEl = document.getElementById('accountsReceivable');
-                    
-                    if(cashBalanceEl) cashBalanceEl.textContent = `Rp ${financialData.cashBalance.toLocaleString('id-ID')}`;
-                    if(accountsPayableEl) accountsPayableEl.textContent = `Rp ${financialData.accountsPayable.toLocaleString('id-ID')}`;
-                    if(accountsReceivableEl) accountsReceivableEl.textContent = `Rp ${financialData.accountsReceivable.toLocaleString('id-ID')}`;
-
-                    // Render finance actions table
-                    filterAndSortFinanceActions();
-
-                    // Render tax table
-                    filterAndSortTaxData();
-
-                    // Chart data
-                    const projectedCashFlowCanvas = document.getElementById('projectedCashFlowChart');
-                    if (projectedCashFlowCanvas) {
-                      const projectedCashFlowCtx = projectedCashFlowCanvas.getContext('2d');
-                      charts.projectedCashFlow = new Chart(projectedCashFlowCtx, {
-                          type: 'line',
-                          data: financialData.projectedCashFlow,
-                          options: { responsive: true }
-                      });
-                    }
-
-                    const profitMarginCanvas = document.getElementById('profitMarginChart');
-                    if (profitMarginCanvas) {
-                      const profitMarginCtx = profitMarginCanvas.getContext('2d');
-                      charts.profitMargin = new Chart(profitMarginCtx, {
-                          type: 'bar',
-                          data: {
-                              labels: financialData.profitMargin.labels,
-                              datasets: [{
-                                  label: 'Net Profit Margin (%)',
-                                  data: financialData.profitMargin.data,
-                                  backgroundColor: ['#6366f1', '#8b5cf6', '#a855f7', '#d946ef'],
-                                  borderRadius: 4,
-                              }]
-                          },
-                          options: {
-                            responsive: true,
-                            scales: {
-                                y: {
-                                    beginAtZero: true,
-                                    title: {
-                                        display: true,
-                                        text: 'Net Profit Margin (%)'
-                                    }
-                                }
-                            },
-                            plugins: {
-                                legend: { display: false },
-                                tooltip: {
-                                  callbacks: {
-                                    label: function(context) {
-                                      let label = context.dataset.label || '';
-                                      if (label) {
-                                          label += ': ';
-                                      }
-                                      if (context.parsed.y !== null) {
-                                          label += context.parsed.y + '%';
-                                      }
-                                      return label;
-                                    }
-                                  }
-                                }
-                            }
-                          }
-                      });
-                    }
-                } else if (role === 'management') {
-                    // Management dummy data
-                    const managementData = {
-                        totalRevenue: 1200000000,
-                        revenueTrend: 5.2,
-                        totalDocuments: 452,
-                        docsTrend: 3.1,
-                        avgProfitMargin: 22,
-                        marginTrend: 1.5,
-                        teamSummary: [
-                            { team: 'Team A', notaries: 4, docsQTD: 150, successRate: 92, avgTime: '4.1 Days' },
-                            { team: 'Team B', notaries: 3, docsQTD: 120, successRate: 95, avgTime: '3.8 Days' },
-                            { team: 'Team C', notaries: 5, docsQTD: 182, successRate: 90, avgTime: '4.5 Days' },
-                        ]
-                    };
-
-                    const trendsData = {
-                        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'],
-                        datasets: [
-                            {
-                                label: 'Total Revenue (in M Rp)',
-                                data: [80, 85, 90, 95, 100, 110, 105, 115, 120, 125],
-                                borderColor: '#10b981',
-                                tension: 0.4,
-                                fill: false,
-                                yAxisID: 'y1'
-                            },
-                            {
-                                label: 'Documents Processed',
-                                data: [35, 38, 40, 42, 45, 48, 46, 49, 52, 55],
-                                borderColor: '#3b82f6',
-                                tension: 0.4,
-                                fill: false,
-                                yAxisID: 'y2'
-                            }
-                        ]
-                    };
-                    
-                    const profitabilityData = {
-                        labels: ['Akta Jual Beli', 'SKMHT', 'APHT', 'Fidusia'],
-                        datasets: [{
-                            label: 'Net Profit Margin (%)',
-                            data: [25, 22, 18, 15],
-                            backgroundColor: ['#6366f1', '#8b5cf6', '#a855f7', '#d946ef'],
-                            borderRadius: 4,
-                        }]
-                    };
-
-                    // Update KPI cards
-                    const totalRevenueEl = document.getElementById('totalRevenue');
-                    const revenueTrendEl = document.getElementById('revenueTrend');
-                    const totalDocumentsEl = document.getElementById('totalDocuments');
-                    const docsTrendEl = document.getElementById('docsTrend');
-                    const avgProfitMarginEl = document.getElementById('avgProfitMargin');
-                    const marginTrendEl = document.getElementById('marginTrend');
-                    
-                    if (totalRevenueEl) totalRevenueEl.textContent = `Rp ${(managementData.totalRevenue / 1000000000).toFixed(1)} M`;
-                    if (revenueTrendEl) revenueTrendEl.textContent = `${managementData.revenueTrend}% vs. last month`;
-                    if (totalDocumentsEl) totalDocumentsEl.textContent = managementData.totalDocuments;
-                    if (docsTrendEl) docsTrendEl.textContent = `${managementData.docsTrend}% vs. last month`;
-                    if (avgProfitMarginEl) avgProfitMarginEl.textContent = `${managementData.avgProfitMargin}%`;
-                    if (marginTrendEl) marginTrendEl.textContent = `${managementData.marginTrend}% vs. last month`;
-
-                    // Render team summary table
-                    renderTeamSummaryTable(managementData.teamSummary);
-
-                    // Chart configuration
-                    const trendsCanvas = document.getElementById('managementTrendsChart');
-                    if(trendsCanvas) {
-                        const trendsCtx = trendsCanvas.getContext('2d');
-                        charts.trends = new Chart(trendsCtx, {
-                            type: 'line',
-                            data: trendsData,
-                            options: {
-                                responsive: true,
-                                interaction: {
-                                    mode: 'index',
-                                    intersect: false,
-                                },
-                                scales: {
-                                    y1: {
-                                        type: 'linear',
-                                        display: true,
-                                        position: 'left',
-                                        title: {
-                                            display: true,
-                                            text: 'Revenue (in M Rp)'
-                                        },
-                                        grid: {
-                                            color: 'rgba(0, 0, 0, 0.05)',
-                                        }
-                                    },
-                                    y2: {
-                                        type: 'linear',
-                                        display: true,
-                                        position: 'right',
-                                        title: {
-                                            display: true,
-                                            text: 'Documents Processed'
-                                        },
-                                        grid: {
-                                            drawOnChartArea: false,
-                                        }
-                                    }
-                                }
-                            }
-                        });
-                    }
-                    
-                    const profitCanvas = document.getElementById('managementProfitChart');
-                    if(profitCanvas) {
-                        const profitCtx = profitCanvas.getContext('2d');
-                        charts.profit = new Chart(profitCtx, {
-                            type: 'bar',
-                            data: profitabilityData,
-                            options: {
-                                responsive: true,
-                                scales: {
-                                    y: {
-                                        beginAtZero: true,
-                                        title: {
-                                            display: true,
-                                            text: 'Net Profit Margin (%)'
-                                        },
-                                        max: 30
-                                    }
-                                },
-                                plugins: {
-                                    legend: { display: false }
-                                }
-                            }
-                        });
-                    }
+                        tableFunction();
+                    });
                 }
             };
+
+            addSortListener('deadlineHeader', filterAndSortAssignments, 'sort-icon');
+            addSortListener('priorityHeader', filterAndSortFinanceActions, 'priority-sort-icon');
+            addSortListener('financeActionDateHeader', filterAndSortFinanceActions, 'finance-date-sort-icon');
+            addSortListener('taxDateHeader', filterAndSortTaxData, 'tax-sort-icon');
+
+            // Listener untuk filtering
+            const addFilterListener = (elementId, filterFunction) => {
+                const element = document.getElementById(elementId);
+                if (element) element.addEventListener('input', filterFunction);
+            };
             
-            // Initial render and time update
+            addFilterListener('clientFilter', filterAndSortAssignments);
+            addFilterListener('typeFilter', filterAndSortAssignments);
+            addFilterListener('statusFilter', filterAndSortAssignments);
+            addFilterListener('priorityFilter', filterAndSortFinanceActions);
+            addFilterListener('taxStatusFilter', filterAndSortTaxData);
+            addFilterListener('taxDateStart', filterAndSortTaxData);
+            addFilterListener('taxDateEnd', filterAndSortTaxData);
+
+            // Listener untuk tombol leaderboard
+            const supervisorDashboardEl = document.getElementById('supervisorDashboard');
+            if (supervisorDashboardEl) {
+                supervisorDashboardEl.addEventListener('click', (event) => {
+                    const button = event.target.closest('button[data-time-period]');
+                    if (button) {
+                        document.querySelectorAll('#supervisorDashboard button[data-time-period]').forEach(btn => btn.classList.replace('bg-blue-500', 'bg-gray-200'));
+                        document.querySelectorAll('#supervisorDashboard button[data-time-period]').forEach(btn => btn.classList.replace('text-white', 'text-gray-700'));
+                        button.classList.replace('bg-gray-200', 'bg-blue-500');
+                        button.classList.replace('text-gray-700', 'text-white');
+                        renderLeaderboard(button.dataset.timePeriod);
+                    }
+                });
+            }
+
+            // --- Inisialisasi Aplikasi ---
             renderDashboard('operational');
             updateTimeAndSession();
             setInterval(updateTimeAndSession, 1000);
-
-            // Listen for profile icon click to toggle the menu
-            document.getElementById('profileIcon').addEventListener('click', (event) => {
-                const roleMenu = document.getElementById('roleMenu');
-                if (roleMenu) {
-                  roleMenu.classList.toggle('hidden');
-                }
-                event.stopPropagation(); // Prevents the body click listener from firing immediately
-            });
-            
-            // Listen for role selection in the menu
-            document.getElementById('roleMenu').addEventListener('click', (event) => {
-                const menuItem = event.target.closest('.role-menu-item');
-                if (menuItem) {
-                    const role = menuItem.dataset.role;
-                    renderDashboard(role);
-                    document.getElementById('roleMenu').classList.add('hidden'); // Hide the menu after selection
-                }
-            });
-
-            // Hide the menu if the user clicks anywhere else
-            document.body.addEventListener('click', () => {
-                const roleMenu = document.getElementById('roleMenu');
-                if (roleMenu) {
-                  roleMenu.classList.add('hidden');
-                }
-            });
-
-            // Listen for filter changes
-            const clientFilterEl = document.getElementById('clientFilter');
-            if(clientFilterEl) clientFilterEl.addEventListener('input', filterAndSortAssignments);
-
-            const typeFilterEl = document.getElementById('typeFilter');
-            if(typeFilterEl) typeFilterEl.addEventListener('input', filterAndSortAssignments);
-            
-            const statusFilterEl = document.getElementById('statusFilter');
-            if(statusFilterEl) statusFilterEl.addEventListener('change', filterAndSortAssignments);
-
-            // Listen for sort click
-            const deadlineHeaderEl = document.getElementById('deadlineHeader');
-            if(deadlineHeaderEl) {
-              deadlineHeaderEl.addEventListener('click', () => {
-                  sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
-                  const sortIcon = document.getElementById('sort-icon');
-                  if (sortIcon) {
-                    sortIcon.innerHTML = sortDirection === 'asc' ? 
-                        `<svg class="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path></svg>` : 
-                        `<svg class="w-3 h-3 text-gray-500 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path></svg>`;
-                  }
-                  filterAndSortAssignments();
-              });
-            }
-
-            // Listen for leaderboard time period changes
-            const supervisorDashboardEl = document.getElementById('supervisorDashboard');
-            if (supervisorDashboardEl) {
-              supervisorDashboardEl.addEventListener('click', (event) => {
-                  const button = event.target.closest('button[data-time-period]');
-                  if (button) {
-                      const timePeriod = button.dataset.timePeriod;
-                      const buttons = document.querySelectorAll('#supervisorDashboard button[data-time-period]');
-                      buttons.forEach(btn => {
-                          btn.classList.remove('bg-blue-500', 'text-white');
-                          btn.classList.add('bg-gray-200', 'text-gray-700');
-                      });
-                      button.classList.remove('bg-gray-200', 'text-gray-700');
-                      button.classList.add('bg-blue-500', 'text-white');
-                      renderLeaderboard(timePeriod);
-                  }
-              });
-            }
-
-            // Listen for finance action filtering and sorting
-            const priorityFilterEl = document.getElementById('priorityFilter');
-            if (priorityFilterEl) priorityFilterEl.addEventListener('change', filterAndSortFinanceActions);
-
-            const priorityHeaderEl = document.getElementById('priorityHeader');
-            if (priorityHeaderEl) {
-              priorityHeaderEl.addEventListener('click', () => {
-                  sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
-                  const sortIcon = document.getElementById('priority-sort-icon');
-                  if (sortIcon) {
-                    sortIcon.innerHTML = sortDirection === 'asc' ? 
-                        `<svg class="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path></svg>` : 
-                        `<svg class="w-3 h-3 text-gray-500 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path></svg>`;
-                  }
-                  filterAndSortFinanceActions();
-              });
-            }
-
-            const financeActionDateHeaderEl = document.getElementById('financeActionDateHeader');
-            if(financeActionDateHeaderEl) {
-                financeActionDateHeaderEl.addEventListener('click', () => {
-                    sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
-                    const sortIcon = document.getElementById('finance-date-sort-icon');
-                    if (sortIcon) {
-                      sortIcon.innerHTML = sortDirection === 'asc' ? 
-                          `<svg class="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path></svg>` : 
-                          `<svg class="w-3 h-3 text-gray-500 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path></svg>`;
-                    }
-                    filterAndSortFinanceActions();
-                });
-            }
-
-            // Listen for tax table filtering and sorting
-            const taxStatusFilterEl = document.getElementById('taxStatusFilter');
-            if(taxStatusFilterEl) taxStatusFilterEl.addEventListener('change', filterAndSortTaxData);
-
-            const taxDateStartEl = document.getElementById('taxDateStart');
-            if(taxDateStartEl) taxDateStartEl.addEventListener('change', filterAndSortTaxData);
-
-            const taxDateEndEl = document.getElementById('taxDateEnd');
-            if(taxDateEndEl) taxDateEndEl.addEventListener('change', filterAndSortTaxData);
-
-            const taxDateHeaderEl = document.getElementById('taxDateHeader');
-            if (taxDateHeaderEl) {
-                taxDateHeaderEl.addEventListener('click', () => {
-                    sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
-                    const sortIcon = document.getElementById('tax-sort-icon');
-                    if(sortIcon) {
-                        sortIcon.innerHTML = sortDirection === 'asc' ? 
-                            `<svg class="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path></svg>` : 
-                            `<svg class="w-3 h-3 text-gray-500 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path></svg>`;
-                    }
-                    filterAndSortTaxData();
-                });
-            }
         });
     </script>
 </body>
