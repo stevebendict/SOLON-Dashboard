@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Divisi Management</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Configure Tailwind for Inter font and custom colors -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        'primary': '#4f46e5',
+                        'secondary': '#10b981',
+                        'background-light': '#f9fafb',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom styles for professional look and scrollability */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3ff6;
+        }
+        /* Style for the active tab indicator */
+        .tab-active {
+            border-bottom: 3px solid #4f46e5;
+            color: #4f46e5;
+            font-weight: 600;
+        }
+        /* Custom scrollbar for better aesthetics */
+        .custom-scroll::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background-color: #d1d5db;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <div id="app" class="p-4 md:p-8">
+        <!-- Application content will be rendered here -->
+    </div>
+
+    <!-- Modal Container -->
+    <div id="modal-container"></div>
+
+    <script>
+        // --- MOCK DATA (DISESUAIKAN UNTUK NOTARIS & PPAT) ---
+        const MOCK_DIVISIONS = [
+            // estimate date format: YYYY-MM-DD
+            { id: 1, name: "Divisi Akta PPAT", head: "Rina Sari", group: "Akta Tanah (PPAT)", status: "Aktif", estimate: "2025-12-15" },
+            { id: 2, name: "Divisi Korporat & PT", head: "Budi Santoso", group: "Akta Perusahaan (Notaris)", status: "Frozen", estimate: "2026-01-01" },
+            { id: 3, name: "Divisi Litigasi & Sengketa", head: "Anya Wijaya", group: "Legalisasi Dokumen", status: "Batal AKAD", estimate: "N/A" },
+            { id: 4, name: "Divisi Waris & Hibah", head: "Joko Pramono", group: "Akta Waris & Hibah", status: "Selesai (Akta Terbit)", estimate: "2025-09-01" },
+        ];
+        const MOCK_PERSONNEL = ["Rina Sari", "Budi Santoso", "Anya Wijaya", "Joko Pramono", "Siti Aisyah", "Deny Firmansyah"];
+        const MOCK_JOB_GROUPS = ["Akta Tanah (PPAT)", "Akta Perusahaan (Notaris)", "Akta Waris & Hibah", "Legalisasi Dokumen", "Dokumen Keuangan & Pajak"];
+
+        // --- STATE MANAGEMENT ---
+        let state = {
+            currentPage: 'list', // 'list' or 'detail'
+            modalOpen: false,
+            selectedDivision: null, // ID of the division being viewed/edited
+            activeDetailTab: 'ringkasan', // 'ringkasan', 'form-order', 'finance', 'data-pendukung'
+        };
+
+        // --- UTILITY FUNCTIONS ---
+
+        /**
+         * Simple function to safely update the state and re-render the application.
+         * @param {object} newState - Partial state object to merge.
+         */
+        function updateState(newState) {
+            state = { ...state, ...newState };
+            renderApp();
+        }
+
+        /**
+         * Converts date string to readable Indonesian format.
+         */
+        function formatDate(dateStr) {
+            if (dateStr === 'N/A') return dateStr;
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
+        }
+        
+        // Function to create an SVG icon
+        function getIcon(name, classes = 'w-5 h-5') {
+            const icons = {
+                'plus': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${classes}"><path d="M5 12h14"/><path d="M12 5v14"/></svg>`,
+                'edit': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${classes}"><path d="M17 3a2.85 2.85 0 0 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>`,
+                'trash': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${classes}"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>`,
+                'duplicate': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${classes}"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><path d="M13 3v2c0 1 1 2 2 2h2"/><path d="M16 17v-4c0-1-1-2-2-2h-4c-1 0-2 1-2 2v4"/></svg>`,
+                'lock': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${classes}"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`,
+                'cancel': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${classes}"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>`,
+                'detail': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${classes}"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
+            };
+            return icons[name] || '';
+        }
+
+        // --- UI COMPONENTS ---
+
+        /**
+         * Renders the List Job Divisi screen.
+         */
+        function renderList() {
+            const listDiv = document.createElement('div');
+            listDiv.className = 'bg-white shadow-xl rounded-xl p-4 md:p-8';
+
+            const header = `
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b pb-4">
+                    <!-- DIKSI: Divisi Pekerjaan -> Job Divisi -->
+                    <h1 class="text-3xl font-bold text-gray-800">Daftar Job Divisi</h1>
+                    <button onclick="updateState({ modalOpen: true, selectedDivision: null })" class="mt-4 md:mt-0 px-6 py-2 bg-primary text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition duration-150 flex items-center transform hover:scale-[1.02]">
+                        ${getIcon('plus', 'w-5 h-5 mr-2')}
+                        Tambah Data
+                    </button>
+                </div>
+            `;
+            
+            const tableBody = MOCK_DIVISIONS.map(div => `
+                <tr class="border-b hover:bg-gray-50 transition duration-150 cursor-pointer" onclick="updateState({ currentPage: 'detail', selectedDivision: ${div.id} })">
+                    <td class="px-4 py-3 font-medium text-gray-900">${div.name}</td>
+                    <td class="px-4 py-3">${div.head}</td>
+                    <td class="px-4 py-3 hidden sm:table-cell">${div.group}</td>
+                    <td class="px-4 py-3">
+                        <span class="px-3 py-1 text-xs font-semibold rounded-full ${div.status === 'Aktif' ? 'bg-secondary text-green-800' : div.status === 'Frozen' ? 'bg-yellow-100 text-yellow-800' : div.status.includes('Selesai') ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'}">
+                            ${div.status}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                        <button class="text-primary hover:text-indigo-700 p-2 rounded-full hover:bg-gray-100 transition duration-150" title="Lihat Detail">
+                            ${getIcon('detail', 'w-5 h-5')}
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+
+            const table = `
+                <div class="overflow-x-auto rounded-lg border">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Divisi</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kepala Divisi</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">Grup Pekerjaan</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            ${tableBody}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            listDiv.innerHTML = header + table;
+            return listDiv;
+        }
+
+        /**
+         * Renders the Add/Edit Division Popup Form (Modal).
+         */
+        function renderPopupForm() {
+            if (!state.modalOpen) return '';
+
+            const isEdit = state.selectedDivision !== null;
+            const currentDiv = isEdit ? MOCK_DIVISIONS.find(d => d.id === state.selectedDivision) : {};
+
+            const personnelOptions = MOCK_PERSONNEL.map(p => `<option value="${p}" ${currentDiv.head === p ? 'selected' : ''}>${p}</option>`).join('');
+            const groupOptions = MOCK_JOB_GROUPS.map(g => `<option value="${g}" ${currentDiv.group === g ? 'selected' : ''}>${g}</option>`).join('');
+
+            return `
+                <div class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50">
+                    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-100">
+                        <!-- Modal Header -->
+                        <div class="px-6 py-4 border-b">
+                            <h3 class="text-xl font-semibold text-gray-800">${isEdit ? 'Ubah Data Job Divisi' : 'Tambah Data Job Divisi Baru'}</h3>
+                        </div>
+
+                        <!-- Modal Body (Form) -->
+                        <div class="p-6 space-y-5 custom-scroll max-h-[80vh] overflow-y-auto">
+                            <!-- Nama Divisi -->
+                            <div>
+                                <label for="nama_divisi" class="block text-sm font-medium text-gray-700 mb-1">Nama Divisi <span class="text-red-500">*</span></label>
+                                <input type="text" id="nama_divisi" value="${currentDiv.name || ''}" placeholder="Cth: Divisi Akta Jual Beli Properti" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition duration-150">
+                            </div>
+
+                            <!-- Kepala Divisi -->
+                            <div>
+                                <label for="kepala_divisi" class="block text-sm font-medium text-gray-700 mb-1">Kepala Divisi <span class="text-red-500">*</span></label>
+                                <select id="kepala_divisi" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition duration-150 bg-white">
+                                    <option value="">Pilih Kepala Divisi</option>
+                                    ${personnelOptions}
+                                </select>
+                            </div>
+
+                            <!-- Grup Pekerjaan -->
+                            <div>
+                                <label for="grup_pekerjaan" class="block text-sm font-medium text-gray-700 mb-1">Grup Pekerjaan <span class="text-red-500">*</span></label>
+                                <select id="grup_pekerjaan" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition duration-150 bg-white">
+                                    <option value="">Pilih Grup Pekerjaan (Contoh: Akta Tanah)</option>
+                                    ${groupOptions}
+                                </select>
+                            </div>
+
+                            <!-- Sub Form Konfigurasi (as per flowchart) -->
+                            <div class="pt-4 border-t mt-4">
+                                <label class="inline-flex items-center">
+                                    <input type="checkbox" id="config_now" class="form-checkbox text-primary rounded focus:ring-primary">
+                                    <span class="ml-2 text-sm text-gray-700 font-medium">Lakukan Konfigurasi Data Pendukung Sekarang</span>
+                                </label>
+                                <p class="text-xs text-gray-500 mt-1">Jika dicentang, akan langsung menuju halaman Detail setelah disimpan untuk melengkapi data master.</p>
+                            </div>
+
+                        </div>
+
+                        <!-- Modal Footer -->
+                        <div class="px-6 py-4 bg-gray-50 flex justify-end space-x-3">
+                            <button onclick="updateState({ modalOpen: false })" class="px-5 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-100 transition duration-150">
+                                Cancel
+                            </button>
+                            <button onclick="saveDivision('${isEdit}')" class="px-5 py-2 bg-secondary text-white font-medium rounded-lg shadow-md hover:bg-green-700 transition duration-150">
+                                Save / Simpan
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        /**
+         * Renders a placeholder chart panel for the Detail view.
+         */
+        function renderChartPlaceholder(title, color) {
+            return `
+                <div class="bg-white rounded-xl shadow-lg p-5 border-l-4 border-${color}-500">
+                    <p class="text-sm font-semibold text-gray-500 uppercase">${title}</p>
+                    <div class="h-32 bg-${color}-100 rounded-lg flex items-center justify-center mt-3 border border-dashed border-${color}-300">
+                        <span class="text-${color}-600 text-sm font-medium">Visualisasi ${title} (Chart)</span>
+                    </div>
+                    <a href="#" class="text-xs text-primary hover:text-indigo-700 mt-2 block text-right">Lihat chart detail kanan untuk detail selengkapnya</a>
+                </div>
+            `;
+        }
+
+        /**
+         * Renders the Detail Job Divisi screen.
+         */
+        function renderDetail() {
+            const division = MOCK_DIVISIONS.find(d => d.id === state.selectedDivision);
+            if (!division) return document.createTextNode('');
+
+            const detailDiv = document.createElement('div');
+            detailDiv.className = 'space-y-6';
+
+            // --- 1. Header and Action Buttons ---
+            const actionButtons = `
+                <div class="bg-white shadow-xl rounded-xl p-4 md:p-6 mb-6">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b pb-4">
+                        <h1 class="text-2xl md:text-3xl font-bold text-gray-800 truncate">Detail Job Divisi: ${division.name}</h1>
+                        <button onclick="updateState({ currentPage: 'list', selectedDivision: null })" class="text-sm text-gray-600 hover:text-primary mt-3 md:mt-0 font-medium transition duration-150 flex items-center">
+                            ${getIcon('cancel', 'w-4 h-4 mr-1')}
+                            Kembali ke Daftar Job Divisi
+                        </button>
+                    </div>
+
+                    <!-- Tombol Aksi - Action Buttons -->
+                    <div class="flex flex-wrap gap-3">
+                        <button onclick="updateState({ modalOpen: true })" class="flex items-center px-4 py-2 text-sm font-medium text-primary border border-primary rounded-lg hover:bg-primary hover:text-white transition duration-150">
+                            ${getIcon('edit', 'w-4 h-4 mr-2')} Edit
+                        </button>
+                        <button class="flex items-center px-4 py-2 text-sm font-medium text-red-600 border border-red-600 rounded-lg hover:bg-red-600 hover:text-white transition duration-150">
+                            ${getIcon('trash', 'w-4 h-4 mr-2')} Hapus
+                        </button>
+                        <button class="flex items-center px-4 py-2 text-sm font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-100 transition duration-150">
+                            ${getIcon('duplicate', 'w-4 h-4 mr-2')} Duplikat
+                        </button>
+                        <button class="flex items-center px-4 py-2 text-sm font-medium text-yellow-600 border border-yellow-600 rounded-lg hover:bg-yellow-600 hover:text-white transition duration-150">
+                            ${getIcon('lock', 'w-4 h-4 mr-2')} Freeze
+                        </button>
+                        <button class="flex items-center px-4 py-2 text-sm font-medium bg-red-500 text-white rounded-lg shadow-md hover:bg-red-700 transition duration-150">
+                            ${getIcon('cancel', 'w-4 h-4 mr-2')} Batal AKAD
+                        </button>
+                    </div>
+                </div>
+            `;
+            detailDiv.innerHTML += actionButtons;
+
+            // --- 2. Chart Dashboard Overview ---
+            const chartDashboard = `
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    ${renderChartPlaceholder('Ringkasan (Bar Chart)', 'indigo')}
+                    ${renderChartPlaceholder('Tab Finance (Chart)', 'secondary')}
+                    ${renderChartPlaceholder('Tab Pendukung (Chart)', 'yellow')}
+                </div>
+            `;
+            detailDiv.innerHTML += chartDashboard;
+
+            // --- 3. Tabbed Interface ---
+            const tabs = renderTabs(division);
+            detailDiv.innerHTML += tabs;
+
+            return detailDiv;
+        }
+
+        /**
+         * Renders the content of the detail tabs.
+         */
+        function renderTabs(division) {
+            const tabsNav = [
+                { id: 'ringkasan', label: 'Tab Ringkasan' },
+                { id: 'form-order', label: 'Tab Form Order' },
+                { id: 'finance', label: 'Tab Finance' },
+                { id: 'data-pendukung', label: 'Tab Data Pendukung' },
+            ].map(tab => `
+                <button
+                    onclick="updateState({ activeDetailTab: '${tab.id}' })"
+                    class="px-4 py-3 text-center border-b-2 text-sm md:text-base transition duration-150 whitespace-nowrap
+                    ${state.activeDetailTab === tab.id ? 'tab-active border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}">
+                    ${tab.label}
+                </button>
+            `).join('');
+
+            let tabContent = '';
+            switch (state.activeDetailTab) {
+                case 'ringkasan':
+                    tabContent = renderTabRingkasan(division);
+                    break;
+                case 'form-order':
+                    tabContent = renderTabContent('Tab Form Order', 'Form order detail dan konfigurasi item-item pekerjaan (layanan akta) untuk Job Divisi ini.');
+                    break;
+                case 'finance':
+                    tabContent = renderTabContent('Tab Finance', 'Detail alokasi anggaran, pencatatan biaya (cost logging), dan integrasi modul pajak/legalisasi.');
+                    break;
+                case 'data-pendukung':
+                    tabContent = renderTabContent('Tab Data Pendukung', 'Konfigurasi data master, dokumen legal, dan integrasi dengan modul Akta Notaris/PPAT.');
+                    break;
+                default:
+                    tabContent = 'Konten tidak ditemukan.';
+            }
+
+            return `
+                <div class="bg-white shadow-xl rounded-xl p-0">
+                    <div class="overflow-x-auto border-b">
+                        <nav class="flex space-x-4 px-6 pt-3">
+                            ${tabsNav}
+                        </nav>
+                    </div>
+                    <div class="p-6">
+                        ${tabContent}
+                    </div>
+                    <!-- Save/Cancel for Detail Tabs -->
+                    <div class="p-4 bg-gray-50 border-t flex justify-end space-x-3 rounded-b-xl">
+                        <button class="px-5 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-100 transition duration-150">
+                            Cancel
+                        </button>
+                        <button class="px-5 py-2 bg-primary text-white font-medium rounded-lg shadow-md hover:bg-indigo-700 transition duration-150">
+                            Save Data
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        /**
+         * Renders the fields for the Tab Ringkasan (Summary/Core Data), disesuaikan dengan konteks Notaris/PPAT.
+         */
+        function renderTabRingkasan(division) {
+            const fields = [
+                // Diksi Job Divisi
+                { label: 'Nama Job Divisi', value: division.name, type: 'text', readOnly: true },
+                { label: 'Grup Pekerjaan', value: division.group, type: 'text', readOnly: true },
+                { label: 'Jenis Layanan', value: 'Jual Beli Tanah', type: 'text', placeholder: 'Cth: Pendirian PT, Jual Beli, Hibah' },
+                { label: 'Kepala Divisi', value: division.head, type: 'select', options: MOCK_PERSONNEL },
+                { label: 'Penanggung Jawab Berkas', value: 'Joko Pramono', type: 'select', options: MOCK_PERSONNEL },
+                { label: 'No. Registrasi Klien', value: 'R/2025/112/A', type: 'text', placeholder: 'Nomor referensi internal atau klien' },
+                { label: 'Status', value: division.status, type: 'text', readOnly: true },
+                // Diksi: Tanggal Tanda Tangan Akta -> Tanggal Akad
+                { label: 'Tanggal Akad', value: '2025-10-30', type: 'date' },
+                { label: 'Tempat Akad', value: 'Kantor Notaris Utama', type: 'text' },
+                { label: 'Tanggal Kirim Berkas', value: formatDate('2025-10-10'), type: 'text', readOnly: true },
+                { label: 'Tanggal Estimasi Berkas Selesai', value: formatDate(division.estimate), type: 'date' },
+            ];
+
+            const formFields = fields.map(field => {
+                let inputHtml;
+                const inputClasses = "w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-700";
+                
+                if (field.type === 'select') {
+                    const optionsHtml = field.options.map(opt => `<option value="${opt}" ${opt === field.value ? 'selected' : ''}>${opt}</option>`).join('');
+                    inputHtml = `<select id="${field.label.toLowerCase().replace(/\s/g, '_')}" class="${inputClasses} bg-white">${optionsHtml}</select>`;
+                } else if (field.type === 'date') {
+                    inputHtml = `<input type="date" id="${field.label.toLowerCase().replace(/\s/g, '_')}" value="${field.value}" class="${inputClasses} ${field.readOnly ? 'bg-gray-100' : 'bg-white focus:ring-primary focus:border-primary'}" ${field.readOnly ? 'readonly' : ''}>`;
+                } else {
+                    // Added placeholder to text inputs
+                    const placeholderAttr = field.placeholder ? `placeholder="${field.placeholder}"` : '';
+                    inputHtml = `<input type="text" id="${field.label.toLowerCase().replace(/\s/g, '_')}" value="${field.value}" ${placeholderAttr} class="${inputClasses} ${field.readOnly ? 'bg-gray-100' : 'bg-white focus:ring-primary focus:border-primary'}" ${field.readOnly ? 'readonly' : ''}>`;
+                }
+
+                return `
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">${field.label}</label>
+                        ${inputHtml}
+                    </div>
+                `;
+            }).join('');
+
+            const uploadSection = `
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Keterangan Berkas (Text Area)</label>
+                    <textarea rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary bg-white">Masukkan catatan penting terkait proses akta atau berkas di sini...</textarea>
+                </div>
+                <div class="md:col-span-2 space-y-3">
+                    <label class="block text-sm font-medium text-gray-700">Upload Tanda Terima Berkas (2 Slot Upload)</label>
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <div class="flex-1 border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-primary transition duration-150 cursor-pointer">
+                            <input type="file" id="upload_slot_1" class="hidden">
+                            <label for="upload_slot_1" class="text-sm text-gray-500 block">Slot 1: Klik untuk upload atau seret file</label>
+                            <span class="text-xs text-primary mt-1 block">Maks. 5MB, format PDF/JPG</span>
+                        </div>
+                        <div class="flex-1 border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-primary transition duration-150 cursor-pointer">
+                            <input type="file" id="upload_slot_2" class="hidden">
+                            <label for="upload_slot_2" class="text-sm text-gray-500 block">Slot 2: Klik untuk upload atau seret file</label>
+                            <span class="text-xs text-primary mt-1 block">Maks. 5MB, format PDF/JPG</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            return `
+                <form class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                    ${formFields}
+                    ${uploadSection}
+                </form>
+            `;
+        }
+
+        /**
+         * Renders generic content for less-detailed tabs.
+         */
+        function renderTabContent(title, description) {
+            return `
+                <div class="min-h-48 flex items-center justify-center bg-gray-50 rounded-lg border border-dashed border-gray-200 p-8">
+                    <div class="text-center">
+                        <h4 class="text-xl font-semibold text-gray-700">${title}</h4>
+                        <p class="text-gray-500 mt-2 max-w-lg mx-auto">${description}</p>
+                        <p class="mt-4 text-sm text-primary font-medium">nanti di edit.</p>
+                    </div>
+                </div>
+            `;
+        }
+
+
+        // --- ACTION HANDLERS ---
+
+        function saveDivision(isEdit) {
+            const name = document.getElementById('nama_divisi').value;
+            const head = document.getElementById('kepala_divisi').value;
+            const group = document.getElementById('grup_pekerjaan').value;
+            const configNow = document.getElementById('config_now').checked;
+
+            if (!name || !head || !group) {
+                // In a real app, use a custom toast/modal, not console log
+                console.error('Validation Error: All fields marked with * are required.');
+                return;
+            }
+
+            console.log(`${isEdit === 'true' ? 'Updating' : 'Creating'} division:`, { name, head, group, configNow });
+
+            // Mock Data Update/Create Logic
+            if (isEdit === 'true') {
+                // Find and update the existing division in MOCK_DIVISIONS
+                // (Omitted for brevity in this UI mock)
+            } else {
+                // Add new division to MOCK_DIVISIONS
+                MOCK_DIVISIONS.push({
+                    id: MOCK_DIVISIONS.length + 1,
+                    name: name,
+                    head: head,
+                    group: group,
+                    status: 'Aktif',
+                    estimate: 'TBC'
+                });
+            }
+
+            updateState({ 
+                modalOpen: false, 
+                currentPage: configNow ? 'detail' : 'list',
+                selectedDivision: configNow ? MOCK_DIVISIONS[MOCK_DIVISIONS.length - 1].id : null
+            });
+        }
+
+
+        // --- MAIN RENDER FUNCTION ---
+
+        function renderApp() {
+            const appContainer = document.getElementById('app');
+            const modalContainer = document.getElementById('modal-container');
+            
+            // Clear containers
+            appContainer.innerHTML = '';
+            modalContainer.innerHTML = '';
+
+            // Render main page content
+            let content;
+            if (state.currentPage === 'list') {
+                content = renderList();
+            } else if (state.currentPage === 'detail') {
+                content = renderDetail();
+            }
+            appContainer.appendChild(content);
+
+            // Render modal if open
+            modalContainer.innerHTML = renderPopupForm();
+        }
+
+        // Initialize the application
+        window.onload = renderApp;
+    </script>
+
+</body>
+</html>
