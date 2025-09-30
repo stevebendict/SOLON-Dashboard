@@ -93,6 +93,13 @@
             const date = new Date(dateStr);
             return date.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
         }
+
+        /**
+         * Formats number to Rupiah currency.
+         */
+        function formatRupiah(number) {
+             return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(number);
+        }
         
         // Function to create an SVG icon
         function getIcon(name, classes = 'w-5 h-5') {
@@ -239,22 +246,7 @@
                 </div>
             `;
         }
-
-        /**
-         * Renders a placeholder chart panel for the Detail view.
-         */
-        function renderChartPlaceholder(title, color) {
-            return `
-                <div class="bg-white rounded-xl shadow-lg p-5 border-l-4 border-${color}-500">
-                    <p class="text-sm font-semibold text-gray-500 uppercase">${title}</p>
-                    <div class="h-32 bg-${color}-100 rounded-lg flex items-center justify-center mt-3 border border-dashed border-${color}-300">
-                        <span class="text-${color}-600 text-sm font-medium">Visualisasi ${title} (Chart)</span>
-                    </div>
-                    <a href="#" class="text-xs text-primary hover:text-indigo-700 mt-2 block text-right">Lihat chart detail kanan untuk detail selengkapnya</a>
-                </div>
-            `;
-        }
-
+        
         /**
          * Renders the Detail Job Divisi screen.
          */
@@ -298,17 +290,7 @@
             `;
             detailDiv.innerHTML += actionButtons;
 
-            // --- 2. Chart Dashboard Overview ---
-            const chartDashboard = `
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    ${renderChartPlaceholder('Ringkasan (Bar Chart)', 'indigo')}
-                    ${renderChartPlaceholder('Tab Finance (Chart)', 'secondary')}
-                    ${renderChartPlaceholder('Tab Pendukung (Chart)', 'yellow')}
-                </div>
-            `;
-            detailDiv.innerHTML += chartDashboard;
-
-            // --- 3. Tabbed Interface ---
+            // --- 2. Tabbed Interface ---
             const tabs = renderTabs(division);
             detailDiv.innerHTML += tabs;
 
@@ -339,13 +321,13 @@
                     tabContent = renderTabRingkasan(division);
                     break;
                 case 'form-order':
-                    tabContent = renderTabContent('Tab Form Order', 'Form order detail dan konfigurasi item-item pekerjaan (layanan akta) untuk Job Divisi ini.');
+                    tabContent = renderTabFormOrder(division); // Panggilan ke fungsi baru
                     break;
                 case 'finance':
-                    tabContent = renderTabContent('Tab Finance', 'Detail alokasi anggaran, pencatatan biaya (cost logging), dan integrasi modul pajak/legalisasi.');
+                    tabContent = renderTabFinance(division); // Panggilan ke fungsi baru
                     break;
                 case 'data-pendukung':
-                    tabContent = renderTabContent('Tab Data Pendukung', 'Konfigurasi data master, dokumen legal, dan integrasi dengan modul Akta Notaris/PPAT.');
+                    tabContent = renderTabDataPendukung(division); // Panggilan ke fungsi baru
                     break;
                 default:
                     tabContent = 'Konten tidak ditemukan.';
@@ -375,11 +357,10 @@
         }
 
         /**
-         * Renders the fields for the Tab Ringkasan (Summary/Core Data), disesuaikan dengan konteks Notaris/PPAT.
+         * Renders the fields for the Tab Ringkasan (Summary/Core Data).
          */
         function renderTabRingkasan(division) {
             const fields = [
-                // Diksi Job Divisi
                 { label: 'Nama Job Divisi', value: division.name, type: 'text', readOnly: true },
                 { label: 'Grup Pekerjaan', value: division.group, type: 'text', readOnly: true },
                 { label: 'Jenis Layanan', value: 'Jual Beli Tanah', type: 'text', placeholder: 'Cth: Pendirian PT, Jual Beli, Hibah' },
@@ -387,7 +368,6 @@
                 { label: 'Penanggung Jawab Berkas', value: 'Joko Pramono', type: 'select', options: MOCK_PERSONNEL },
                 { label: 'No. Registrasi Klien', value: 'R/2025/112/A', type: 'text', placeholder: 'Nomor referensi internal atau klien' },
                 { label: 'Status', value: division.status, type: 'text', readOnly: true },
-                // Diksi: Tanggal Tanda Tangan Akta -> Tanggal Akad
                 { label: 'Tanggal Akad', value: '2025-10-30', type: 'date' },
                 { label: 'Tempat Akad', value: 'Kantor Notaris Utama', type: 'text' },
                 { label: 'Tanggal Kirim Berkas', value: formatDate('2025-10-10'), type: 'text', readOnly: true },
@@ -446,17 +426,190 @@
                 </form>
             `;
         }
+        
+        /**
+         * Renders the Tab Form Order (Itemization).
+         */
+        function renderTabFormOrder(division) {
+            const jobItems = [
+                { id: 1, name: "Drafting Akta Jual Beli (AJB)", qty: 1, status: "Final", responsible: "Rina Sari" },
+                { id: 2, name: "Pengurusan SKPT", qty: 1, status: "Reviewed", responsible: "Anya Wijaya" },
+                { id: 3, name: "Pengecekan Sertifikat BPN", qty: 1, status: "Done", responsible: "Joko Pramono" },
+            ];
+
+            const itemRows = jobItems.map(item => `
+                <tr class="border-b hover:bg-gray-50 transition duration-150">
+                    <td class="px-4 py-3">${item.name}</td>
+                    <td class="px-4 py-3 w-20 text-center">${item.qty}</td>
+                    <td class="px-4 py-3">
+                        <span class="px-3 py-1 text-xs font-semibold rounded-full ${item.status === 'Final' ? 'bg-secondary text-green-800' : item.status === 'Reviewed' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'}">
+                            ${item.status}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 hidden sm:table-cell">${item.responsible}</td>
+                    <td class="px-4 py-3 text-right">
+                        <button class="text-primary hover:text-indigo-700 p-1 rounded-full hover:bg-gray-100 transition duration-150" title="Edit Item">${getIcon('edit', 'w-4 h-4')}</button>
+                    </td>
+                </tr>
+            `).join('');
+
+            return `
+                <div class="space-y-6">
+                    <div class="flex justify-between items-center pb-3 border-b">
+                        <h4 class="text-xl font-semibold text-gray-700">Item Pekerjaan Akta (${division.name})</h4>
+                        <button class="px-4 py-2 bg-primary text-white font-medium rounded-lg shadow-md hover:bg-indigo-700 transition duration-150 flex items-center text-sm">
+                            ${getIcon('plus', 'w-4 h-4 mr-2')} Tambah Item
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto rounded-lg border">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deskripsi Item</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Proses Status</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">PIC</th>
+                                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                ${itemRows}
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="text-sm text-gray-500">Total 3 item pekerjaan terdaftar untuk Job Divisi ini.</p>
+                </div>
+            `;
+        }
 
         /**
-         * Renders generic content for less-detailed tabs.
+         * Renders the Tab Finance (Cost Logging and Summary).
          */
-        function renderTabContent(title, description) {
+        function renderTabFinance(division) {
+            const costItems = [
+                { id: 1, name: "Fee Notaris/PPAT (Honorarium)", amount: 5000000, type: "Income" },
+                { id: 2, name: "Biaya Pengecekan BPN", amount: 500000, type: "Expense" },
+                { id: 3, name: "Biaya Administrasi Bank", amount: 150000, type: "Expense" },
+            ];
+            
+            const totalIncome = costItems.filter(item => item.type === 'Income').reduce((sum, item) => sum + item.amount, 0);
+            const totalExpense = costItems.filter(item => item.type === 'Expense').reduce((sum, item) => sum + item.amount, 0);
+            const netTotal = totalIncome - totalExpense;
+
+            const costRows = costItems.map(item => `
+                <tr class="border-b hover:bg-gray-50 transition duration-150">
+                    <td class="px-4 py-3 text-sm">${item.name}</td>
+                    <td class="px-4 py-3 text-sm font-medium ${item.type === 'Income' ? 'text-secondary' : 'text-red-500'}">${formatRupiah(item.amount)}</td>
+                    <td class="px-4 py-3 text-right">
+                        <button class="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-gray-100 transition duration-150" title="Hapus Biaya">${getIcon('trash', 'w-4 h-4')}</button>
+                    </td>
+                </tr>
+            `).join('');
+
             return `
-                <div class="min-h-48 flex items-center justify-center bg-gray-50 rounded-lg border border-dashed border-gray-200 p-8">
-                    <div class="text-center">
-                        <h4 class="text-xl font-semibold text-gray-700">${title}</h4>
-                        <p class="text-gray-500 mt-2 max-w-lg mx-auto">${description}</p>
-                        <p class="mt-4 text-sm text-primary font-medium">nanti di edit.</p>
+                <div class="space-y-6">
+                    <h4 class="text-xl font-semibold text-gray-700 border-b pb-3">Ringkasan Keuangan Job Divisi</h4>
+
+                    <!-- Financial Summary Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-indigo-50 p-5 rounded-xl shadow-md border-l-4 border-primary">
+                            <p class="text-sm font-medium text-gray-500">Total Pemasukan (Fee)</p>
+                            <p class="text-2xl font-bold text-primary mt-1">${formatRupiah(totalIncome)}</p>
+                        </div>
+                        <div class="bg-red-50 p-5 rounded-xl shadow-md border-l-4 border-red-500">
+                            <p class="text-sm font-medium text-gray-500">Total Pengeluaran (Biaya)</p>
+                            <p class="text-2xl font-bold text-red-600 mt-1">${formatRupiah(totalExpense)}</p>
+                        </div>
+                        <div class="bg-secondary/10 p-5 rounded-xl shadow-md border-l-4 border-secondary">
+                            <p class="text-sm font-medium text-gray-500">Total Bersih (Profit/Loss)</p>
+                            <p class="text-2xl font-bold text-secondary mt-1">${formatRupiah(netTotal)}</p>
+                        </div>
+                    </div>
+
+                    <!-- Cost Logging Section -->
+                    <div class="pt-4 border-t">
+                        <div class="flex justify-between items-center pb-3">
+                            <h5 class="text-lg font-semibold text-gray-700">Detail Pencatatan Biaya</h5>
+                            <button class="px-4 py-2 border border-secondary text-secondary font-medium rounded-lg hover:bg-secondary hover:text-white transition duration-150 flex items-center text-sm">
+                                ${getIcon('plus', 'w-4 h-4 mr-2')} Catat Biaya Baru
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto rounded-lg border">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deskripsi Biaya</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nominal</th>
+                                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    ${costRows}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        /**
+         * Renders the Tab Data Pendukung (Document Checklist and Master Data Link).
+         */
+        function renderTabDataPendukung(division) {
+            const documentChecklist = [
+                { name: "KTP Penjual & Pembeli", required: true, received: true, file: "ktp_scanned.pdf" },
+                { name: "Kartu Keluarga (KK)", required: true, received: false, file: null },
+                { name: "Sertifikat Hak Milik (SHM) Asli", required: true, received: true, file: "shm_original.jpg" },
+                { name: "PBB Terakhir Lunas", required: true, received: false, file: null },
+                { name: "NPWP Pihak Terlibat", required: true, received: true, file: "npwp_all.pdf" },
+                { name: "Surat Keterangan Waris (SKW)", required: false, received: false, file: null },
+            ];
+
+            const checklistItems = documentChecklist.map(doc => `
+                <div class="flex justify-between items-center py-3 border-b last:border-b-0 hover:bg-gray-50 px-3 -mx-3 rounded-lg transition duration-150">
+                    <div class="flex items-center space-x-3">
+                        <input type="checkbox" ${doc.received ? 'checked' : ''} class="h-5 w-5 text-primary rounded border-gray-300 focus:ring-primary" ${doc.received ? 'disabled' : ''}>
+                        <div>
+                            <span class="text-sm font-medium ${doc.received ? 'text-gray-900 line-through' : 'text-gray-700'}">${doc.name}</span>
+                            <span class="text-xs ml-2 px-2 py-0.5 rounded-full ${doc.required ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}">${doc.required ? 'Wajib' : 'Opsional'}</span>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        ${doc.file ? 
+                            `<span class="text-xs text-secondary font-medium flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h6"/></svg>
+                                ${doc.file}
+                            </span>` : 
+                            `<button class="text-xs text-primary hover:text-indigo-700 font-medium border border-primary/50 px-3 py-1 rounded-lg hover:bg-primary/10">Upload Dokumen</button>`
+                        }
+                    </div>
+                </div>
+            `).join('');
+
+            return `
+                <div class="space-y-6">
+                    <!-- Document Checklist -->
+                    <div class="bg-white p-5 rounded-xl shadow border">
+                        <h4 class="text-lg font-semibold text-gray-700 mb-4 border-b pb-3">Checklist Dokumen Legal (${division.group})</h4>
+                        <div class="space-y-2">
+                            ${checklistItems}
+                        </div>
+                        <p class="text-xs text-gray-500 mt-4">Penting: Lengkapi semua dokumen wajib sebelum Tanggal Akad.</p>
+                    </div>
+
+                    <!-- Master Data Link -->
+                    <div class="bg-indigo-50 p-5 rounded-xl shadow-inner border border-indigo-200">
+                        <h4 class="text-lg font-semibold text-gray-700 mb-2">Integrasi Master Data Bank</h4>
+                        <p class="text-sm text-gray-600 mb-4">Lakukan konfigurasi data pihak (Penjual/Pembeli) dan data properti yang akan digunakan pada Akta Notaris/PPAT di modul Master Data Bank.</p>
+                        <div class="flex flex-wrap gap-4">
+                            <button class="px-4 py-2 bg-primary text-white font-medium rounded-lg hover:bg-indigo-700 text-sm shadow-md">
+                                Kelola Data Pihak Klien
+                            </button>
+                            <button class="px-4 py-2 border border-primary text-primary font-medium rounded-lg hover:bg-indigo-50 text-sm">
+                                Kelola Data Properti/Aset
+                            </button>
+                        </div>
                     </div>
                 </div>
             `;
