@@ -43,6 +43,10 @@
             background-color: #d1d5db;
             border-radius: 4px;
         }
+        /* Style for Locked ReadOnly Fields */
+        .field-locked {
+            @apply bg-gray-100 border-gray-200 text-gray-500 font-medium;
+        }
     </style>
 </head>
 <body class="min-h-screen">
@@ -58,10 +62,8 @@
         // --- MOCK DATA (DISESUAIKAN UNTUK NOTARIS & PPAT) ---
         const MOCK_DIVISIONS = [
             // estimate date format: YYYY-MM-DD
-            { id: 1, name: "Divisi Akta PPAT", head: "Rina Sari", group: "Akta Tanah (PPAT)", status: "Aktif", estimate: "2025-12-15" },
-            { id: 2, name: "Divisi Korporat & PT", head: "Budi Santoso", group: "Akta Perusahaan (Notaris)", status: "Frozen", estimate: "2026-01-01" },
-            { id: 3, name: "Divisi Litigasi & Sengketa", head: "Anya Wijaya", group: "Legalisasi Dokumen", status: "Batal AKAD", estimate: "N/A" },
-            { id: 4, name: "Divisi Waris & Hibah", head: "Joko Pramono", group: "Akta Waris & Hibah", status: "Selesai (Akta Terbit)", estimate: "2025-09-01" },
+            { id: 1, name: "AJB Properti A", head: "Rina Sari", group: "Akta Tanah (PPAT)", status: "Aktif", estimate: "2025-12-15", job_type: 'Jual Beli', registration_no: 'R/2025/112/A', person_in_charge: 'Joko Pramono', akta_date: '2025-10-30', akta_place: 'Kantor Notaris Utama', file_send_date: '2025-10-10', notes: 'Masukkan catatan penting terkait proses akta atau berkas di sini...' },
+            { id: 2, name: "Pendirian PT Mega Karya", head: "Budi Santoso", group: "Akta Perusahaan (Notaris)", status: "Frozen", estimate: "2026-01-01", job_type: 'Pendirian PT', registration_no: 'R/2025/113/B', person_in_charge: 'Anya Wijaya', akta_date: '2026-01-05', akta_place: 'Virtual Meeting', file_send_date: '2025-12-15', notes: 'Perlu verifikasi data pemegang saham.' },
         ];
         const MOCK_PERSONNEL = ["Rina Sari", "Budi Santoso", "Anya Wijaya", "Joko Pramono", "Siti Aisyah", "Deny Firmansyah"];
         const MOCK_JOB_GROUPS = ["Akta Tanah (PPAT)", "Akta Perusahaan (Notaris)", "Akta Waris & Hibah", "Legalisasi Dokumen", "Dokumen Keuangan & Pajak"];
@@ -89,8 +91,10 @@
          * Converts date string to readable Indonesian format.
          */
         function formatDate(dateStr) {
-            if (dateStr === 'N/A') return dateStr;
+            if (!dateStr || dateStr === 'N/A' || dateStr === 'TBC') return dateStr;
             const date = new Date(dateStr);
+            // Check if date is valid
+            if (isNaN(date)) return dateStr;
             return date.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
         }
 
@@ -111,6 +115,7 @@
                 'lock': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${classes}"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`,
                 'cancel': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${classes}"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>`,
                 'detail': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${classes}"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
+                'back': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${classes}"><path d="m15 18-6-6 6-6"/></svg>`,
             };
             return icons[name] || '';
         }
@@ -126,7 +131,6 @@
 
             const header = `
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b pb-4">
-                    <!-- DIKSI: Divisi Pekerjaan -> Job Divisi -->
                     <h1 class="text-3xl font-bold text-gray-800">Daftar Job Divisi</h1>
                     <button onclick="updateState({ modalOpen: true, selectedDivision: null })" class="mt-4 md:mt-0 px-6 py-2 bg-primary text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition duration-150 flex items-center transform hover:scale-[1.02]">
                         ${getIcon('plus', 'w-5 h-5 mr-2')}
@@ -178,6 +182,7 @@
 
         /**
          * Renders the Add/Edit Division Popup Form (Modal).
+         * Disesuaikan dengan fields dari flowchart: Nama Job Divisi, Kepala Divisi, Grup Pekerjaan, dan Sub Form Konfigurasi.
          */
         function renderPopupForm() {
             if (!state.modalOpen) return '';
@@ -198,13 +203,13 @@
 
                         <!-- Modal Body (Form) -->
                         <div class="p-6 space-y-5 custom-scroll max-h-[80vh] overflow-y-auto">
-                            <!-- Nama Divisi -->
+                            <!-- Nama Job Divisi (sesuai flowchart) -->
                             <div>
-                                <label for="nama_divisi" class="block text-sm font-medium text-gray-700 mb-1">Nama Divisi <span class="text-red-500">*</span></label>
-                                <input type="text" id="nama_divisi" value="${currentDiv.name || ''}" placeholder="Cth: Divisi Akta Jual Beli Properti" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition duration-150">
+                                <label for="nama_divisi" class="block text-sm font-medium text-gray-700 mb-1">Nama Job Divisi <span class="text-red-500">*</span></label>
+                                <input type="text" id="nama_divisi" value="${currentDiv.name || ''}" placeholder="Cth: AJB Properti A" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition duration-150">
                             </div>
 
-                            <!-- Kepala Divisi -->
+                            <!-- Kepala Divisi (sesuai flowchart) -->
                             <div>
                                 <label for="kepala_divisi" class="block text-sm font-medium text-gray-700 mb-1">Kepala Divisi <span class="text-red-500">*</span></label>
                                 <select id="kepala_divisi" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition duration-150 bg-white">
@@ -213,7 +218,7 @@
                                 </select>
                             </div>
 
-                            <!-- Grup Pekerjaan -->
+                            <!-- Grup Pekerjaan (sesuai flowchart) -->
                             <div>
                                 <label for="grup_pekerjaan" class="block text-sm font-medium text-gray-700 mb-1">Grup Pekerjaan <span class="text-red-500">*</span></label>
                                 <select id="grup_pekerjaan" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition duration-150 bg-white">
@@ -222,11 +227,11 @@
                                 </select>
                             </div>
 
-                            <!-- Sub Form Konfigurasi (as per flowchart) -->
+                            <!-- Sub Form Konfigurasi (sesuai flowchart) -->
                             <div class="pt-4 border-t mt-4">
                                 <label class="inline-flex items-center">
                                     <input type="checkbox" id="config_now" class="form-checkbox text-primary rounded focus:ring-primary">
-                                    <span class="ml-2 text-sm text-gray-700 font-medium">Lakukan Konfigurasi Data Pendukung Sekarang</span>
+                                    <span class="ml-2 text-sm text-gray-700 font-medium">Lakukan Konfigurasi Data Pendukung seperti master</span>
                                 </label>
                                 <p class="text-xs text-gray-500 mt-1">Jika dicentang, akan langsung menuju halaman Detail setelah disimpan untuk melengkapi data master.</p>
                             </div>
@@ -263,12 +268,12 @@
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b pb-4">
                         <h1 class="text-2xl md:text-3xl font-bold text-gray-800 truncate">Detail Job Divisi: ${division.name}</h1>
                         <button onclick="updateState({ currentPage: 'list', selectedDivision: null })" class="text-sm text-gray-600 hover:text-primary mt-3 md:mt-0 font-medium transition duration-150 flex items-center">
-                            ${getIcon('cancel', 'w-4 h-4 mr-1')}
+                            ${getIcon('back', 'w-4 h-4 mr-1')}
                             Kembali ke Daftar Job Divisi
                         </button>
                     </div>
 
-                    <!-- Tombol Aksi - Action Buttons -->
+                    <!-- Tombol Aksi - Action Buttons (Sesuai Flowchart) -->
                     <div class="flex flex-wrap gap-3">
                         <button onclick="updateState({ modalOpen: true })" class="flex items-center px-4 py-2 text-sm font-medium text-primary border border-primary rounded-lg hover:bg-primary hover:text-white transition duration-150">
                             ${getIcon('edit', 'w-4 h-4 mr-2')} Edit
@@ -280,7 +285,7 @@
                             ${getIcon('duplicate', 'w-4 h-4 mr-2')} Duplikat
                         </button>
                         <button class="flex items-center px-4 py-2 text-sm font-medium text-yellow-600 border border-yellow-600 rounded-lg hover:bg-yellow-600 hover:text-white transition duration-150">
-                            ${getIcon('lock', 'w-4 h-4 mr-2')} Freeze
+                            ${getIcon('lock', 'w-4 h-4 mr-2')} Freeze (Lock Data)
                         </button>
                         <button class="flex items-center px-4 py-2 text-sm font-medium bg-red-500 text-white rounded-lg shadow-md hover:bg-red-700 transition duration-150">
                             ${getIcon('cancel', 'w-4 h-4 mr-2')} Batal AKAD
@@ -301,6 +306,7 @@
          * Renders the content of the detail tabs.
          */
         function renderTabs(division) {
+            // Label Tab disesuaikan dengan permintaan user (menghilangkan 'chart sebelum detail')
             const tabsNav = [
                 { id: 'ringkasan', label: 'Tab Ringkasan' },
                 { id: 'form-order', label: 'Tab Form Order' },
@@ -321,13 +327,13 @@
                     tabContent = renderTabRingkasan(division);
                     break;
                 case 'form-order':
-                    tabContent = renderTabFormOrder(division); // Panggilan ke fungsi baru
+                    tabContent = renderTabFormOrder(division); 
                     break;
                 case 'finance':
-                    tabContent = renderTabFinance(division); // Panggilan ke fungsi baru
+                    tabContent = renderTabFinance(division);
                     break;
                 case 'data-pendukung':
-                    tabContent = renderTabDataPendukung(division); // Panggilan ke fungsi baru
+                    tabContent = renderTabDataPendukung(division); 
                     break;
                 default:
                     tabContent = 'Konten tidak ditemukan.';
@@ -358,35 +364,64 @@
 
         /**
          * Renders the fields for the Tab Ringkasan (Summary/Core Data).
+         * Field disesuaikan dengan flowchart, dan formatnya diubah menjadi 1 row per data.
+         * Note: Field yang berlabel (Lock) dibuat readOnly dengan styling field-locked.
          */
         function renderTabRingkasan(division) {
+            // Data fields sesuai urutan di Flowchart "Detail Tab Ringkasan"
             const fields = [
-                { label: 'Nama Job Divisi', value: division.name, type: 'text', readOnly: true },
-                { label: 'Grup Pekerjaan', value: division.group, type: 'text', readOnly: true },
-                { label: 'Jenis Layanan', value: 'Jual Beli Tanah', type: 'text', placeholder: 'Cth: Pendirian PT, Jual Beli, Hibah' },
+                // (Label) Lock
+                { label: 'Nama Job Divisi (Lock)', value: division.name, type: 'text', readOnly: true, isLocked: true },
+                { label: 'Grup Pekerjaan (Lock)', value: division.group, type: 'text', readOnly: true, isLocked: true },
+                
+                // (Label)
+                { label: 'Jenis Layanan', value: division.job_type, type: 'text', placeholder: 'Cth: Pendirian PT, Jual Beli, Hibah' },
+                { label: 'No. Registrasi Klien', value: division.registration_no, type: 'text', placeholder: 'Nomor referensi internal atau klien' },
                 { label: 'Kepala Divisi', value: division.head, type: 'select', options: MOCK_PERSONNEL },
-                { label: 'Penanggung Jawab Berkas', value: 'Joko Pramono', type: 'select', options: MOCK_PERSONNEL },
-                { label: 'No. Registrasi Klien', value: 'R/2025/112/A', type: 'text', placeholder: 'Nomor referensi internal atau klien' },
-                { label: 'Status', value: division.status, type: 'text', readOnly: true },
-                { label: 'Tanggal Akad', value: '2025-10-30', type: 'date' },
-                { label: 'Tempat Akad', value: 'Kantor Notaris Utama', type: 'text' },
-                { label: 'Tanggal Kirim Berkas', value: formatDate('2025-10-10'), type: 'text', readOnly: true },
-                { label: 'Tanggal Estimasi Berkas Selesai', value: formatDate(division.estimate), type: 'date' },
+                { label: 'Penanggung Jawab Berkas', value: division.person_in_charge, type: 'select', options: MOCK_PERSONNEL },
+                
+                // (Label) Lock
+                { label: 'Status (Lock)', value: division.status, type: 'text', readOnly: true, isLocked: true },
+                
+                // (Label)
+                { label: 'Tanggal & Tempat AKAD (Calendar Picker)', value: division.akta_date, type: 'datetime-local', value2: division.akta_place, type2: 'text' }, // Combined field
+                { label: 'Tanggal Kirim Berkas', value: division.file_send_date, type: 'date' },
+                { label: 'Tanggal Estimasi Berkas Selesai', value: division.estimate, type: 'date' },
             ];
 
+            // Render single field or combined field (for Tanggal & Tempat AKAD)
             const formFields = fields.map(field => {
+                const baseId = field.label.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_{2,}/g, '_');
+                const isLocked = field.isLocked;
+
+                if (field.label.includes('Tanggal & Tempat AKAD')) {
+                    // Combined field: Tanggal dan Tempat AKAD
+                    return `
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 col-span-1 md:col-span-2">
+                            <div>
+                                <label for="${baseId}_date" class="block text-sm font-medium text-gray-700 mb-1">${field.label.replace('(Calendar Picker)', '')} - Tanggal</label>
+                                <input type="date" id="${baseId}_date" value="${field.value}" class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:ring-primary focus:border-primary">
+                            </div>
+                            <div>
+                                <label for="${baseId}_place" class="block text-sm font-medium text-gray-700 mb-1">${field.label.replace('(Calendar Picker)', '')} - Tempat</label>
+                                <input type="${field.type2}" id="${baseId}_place" value="${field.value2}" placeholder="Cth: Kantor Notaris Utama" class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:ring-primary focus:border-primary">
+                            </div>
+                        </div>
+                    `;
+                }
+
                 let inputHtml;
-                const inputClasses = "w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-700";
+                const inputClasses = "w-full px-4 py-2 border rounded-lg";
+                const focusClasses = isLocked ? 'field-locked' : 'bg-white focus:ring-primary focus:border-primary';
                 
                 if (field.type === 'select') {
                     const optionsHtml = field.options.map(opt => `<option value="${opt}" ${opt === field.value ? 'selected' : ''}>${opt}</option>`).join('');
-                    inputHtml = `<select id="${field.label.toLowerCase().replace(/\s/g, '_')}" class="${inputClasses} bg-white">${optionsHtml}</select>`;
+                    inputHtml = `<select id="${baseId}" class="${inputClasses} ${focusClasses} bg-white" ${isLocked ? 'disabled' : ''}>${optionsHtml}</select>`;
                 } else if (field.type === 'date') {
-                    inputHtml = `<input type="date" id="${field.label.toLowerCase().replace(/\s/g, '_')}" value="${field.value}" class="${inputClasses} ${field.readOnly ? 'bg-gray-100' : 'bg-white focus:ring-primary focus:border-primary'}" ${field.readOnly ? 'readonly' : ''}>`;
+                    inputHtml = `<input type="date" id="${baseId}" value="${field.value}" class="${inputClasses} ${focusClasses}" ${isLocked ? 'readonly' : ''}>`;
                 } else {
-                    // Added placeholder to text inputs
                     const placeholderAttr = field.placeholder ? `placeholder="${field.placeholder}"` : '';
-                    inputHtml = `<input type="text" id="${field.label.toLowerCase().replace(/\s/g, '_')}" value="${field.value}" ${placeholderAttr} class="${inputClasses} ${field.readOnly ? 'bg-gray-100' : 'bg-white focus:ring-primary focus:border-primary'}" ${field.readOnly ? 'readonly' : ''}>`;
+                    inputHtml = `<input type="text" id="${baseId}" value="${field.value}" ${placeholderAttr} class="${inputClasses} ${focusClasses}" ${isLocked ? 'readonly' : ''}>`;
                 }
 
                 return `
@@ -397,13 +432,14 @@
                 `;
             }).join('');
 
-            const uploadSection = `
+            // Bagian Text Area dan Upload disesuaikan dengan Flowchart
+            const notesAndUploadSection = `
                 <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Keterangan Berkas (Text Area)</label>
-                    <textarea rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary bg-white">Masukkan catatan penting terkait proses akta atau berkas di sini...</textarea>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Keterangan (Text Area)</label>
+                    <textarea rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary bg-white">${division.notes}</textarea>
                 </div>
                 <div class="md:col-span-2 space-y-3">
-                    <label class="block text-sm font-medium text-gray-700">Upload Tanda Terima Berkas (2 Slot Upload)</label>
+                    <label class="block text-sm font-medium text-gray-700">Upload tanda terima berkas (2 slot upload...)</label>
                     <div class="flex flex-col sm:flex-row gap-4">
                         <div class="flex-1 border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-primary transition duration-150 cursor-pointer">
                             <input type="file" id="upload_slot_1" class="hidden">
@@ -422,7 +458,7 @@
             return `
                 <form class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                     ${formFields}
-                    ${uploadSection}
+                    ${notesAndUploadSection}
                 </form>
             `;
         }
@@ -477,7 +513,10 @@
                             </tbody>
                         </table>
                     </div>
-                    <p class="text-sm text-gray-500">Total 3 item pekerjaan terdaftar untuk Job Divisi ini.</p>
+                    <!-- Penggantian Diksi: Keterangan diangkut -> Tabel Ringkasan (sesuai permintaan user) -->
+                    <p class="text-sm font-medium text-primary border-t pt-3">
+                        Tabel Ringkasan: Total 3 item pekerjaan terdaftar untuk Job Divisi ini.
+                    </p>
                 </div>
             `;
         }
@@ -555,6 +594,7 @@
 
         /**
          * Renders the Tab Data Pendukung (Document Checklist and Master Data Link).
+         * Disesuaikan dengan label "Data Pendukung" dari Flowchart.
          */
         function renderTabDataPendukung(division) {
             const documentChecklist = [
@@ -591,7 +631,7 @@
                 <div class="space-y-6">
                     <!-- Document Checklist -->
                     <div class="bg-white p-5 rounded-xl shadow border">
-                        <h4 class="text-lg font-semibold text-gray-700 mb-4 border-b pb-3">Checklist Dokumen Legal (${division.group})</h4>
+                        <h4 class="text-lg font-semibold text-gray-700 mb-4 border-b pb-3">Data Pendukung: Checklist Dokumen Legal (${division.group})</h4>
                         <div class="space-y-2">
                             ${checklistItems}
                         </div>
@@ -625,8 +665,8 @@
             const configNow = document.getElementById('config_now').checked;
 
             if (!name || !head || !group) {
-                // In a real app, use a custom toast/modal, not console log
-                console.error('Validation Error: All fields marked with * are required.');
+                // In a real app, use a custom toast/modal
+                console.error('Validation Error: Semua field wajib (*) harus diisi.');
                 return;
             }
 
@@ -634,20 +674,28 @@
 
             // Mock Data Update/Create Logic
             if (isEdit === 'true') {
-                // Find and update the existing division in MOCK_DIVISIONS
-                // (Omitted for brevity in this UI mock)
+                // In a real application, you would save data here.
             } else {
-                // Add new division to MOCK_DIVISIONS
+                // Add new division to MOCK_DIVISIONS (Mocking new ID)
+                const newId = MOCK_DIVISIONS.length + 1;
                 MOCK_DIVISIONS.push({
-                    id: MOCK_DIVISIONS.length + 1,
+                    id: newId,
                     name: name,
                     head: head,
                     group: group,
                     status: 'Aktif',
-                    estimate: 'TBC'
+                    estimate: 'TBC',
+                    job_type: '',
+                    registration_no: '',
+                    person_in_charge: head,
+                    akta_date: '',
+                    akta_place: '',
+                    file_send_date: '',
+                    notes: ''
                 });
             }
 
+            // Redirect based on 'configNow' checkbox
             updateState({ 
                 modalOpen: false, 
                 currentPage: configNow ? 'detail' : 'list',
